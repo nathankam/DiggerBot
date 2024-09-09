@@ -1,5 +1,5 @@
-from persistence.models.group import Group
-from persistence.models.user import User
+from src.persistence.models.group import Group
+from src.persistence.models.user import User
 
 
 class GroupDbResource:

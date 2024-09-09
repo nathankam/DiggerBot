@@ -1,4 +1,4 @@
-from models.schedule import Event, Schedule
+from src.models.schedule import Event, Schedule
 
 SCHEDULES: list[Schedule] = [
     Schedule(

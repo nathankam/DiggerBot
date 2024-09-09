@@ -1,5 +1,6 @@
-from persistence.models.contribution import Contribution
-from persistence.models.session import Session
+from typing import Optional
+from src.persistence.models.contribution import Contribution
+from src.persistence.models.session import Session
 
 
 class SessionDbResource:
@@ -16,13 +17,12 @@ class SessionDbResource:
             _session.commit()
             _session.refresh(session)
 
-    def get_active_sessions(self, group_id: str):
+    def get_active_session(self, group_id: str) -> Optional[Session]:
 
         with self.session() as session:
 
-            return session.query(Session).filter(Session.group_id == group_id, Session.is_active == True).all()
-
-    
+            return session.query(Session).filter(Session.group_id == group_id, Session.is_active == True).first()
+        
     def get_last_session_number(self, group_id: str):
 
         with self.session() as session:

@@ -1,40 +1,42 @@
 import datetime
 import json
-from fbchat import Client
-from fbchat.models import *
+from typing import Optional
 from dotenv import load_dotenv
 import os
-import schedule
-import time
+import asyncio
 
-from data.schedules import SCHEDULES
-from models.message import Command
-from models.music import Theme
-from models.schedule import Event
-from persistence.models.contribution import Contribution
-from persistence.models.session import Session
-from persistence.models.group import Group
-from persistence.models.user import User
-from services.commands import CommandCenter
-from services.messenger import MessengerBot
-from services.helpers import count_votes, detect_contributions, get_session_number, pick_theme
-from services.gamemaster import GameMaster
+from discord import Message
+
+from src.data.schedules import SCHEDULES
+from src.models.message import Command
+from src.models.music import Theme
 
 from src.persistence.database import DatabaseAccess
+from src.persistence.models.contribution import Contribution
+from src.persistence.models.session import Session
+from src.persistence.models.group import Group
+from src.persistence.models.user import User
+
+from src.services.commands import CommandCenter
+from src.services.messenger import MessengerBot
+from src.services.discord import DiscordBot
+from src.services.helpers import count_votes, detect_contributions, pick_theme
+from src.services.gamemaster import GameMaster
 
 # Load credentials from .env file
 load_dotenv()
-EMAIL = os.getenv("EMAIL")
-PASSWORD = os.getenv("PASSWORD")
+
+TOKEN = os.getenv('DISCORD_TOKEN')
 BOT_REFRESH_RATE = os.getenv("BOT_REFRESH_RATE")
 
 # Create a database connection
-database = DatabaseAccess(os.getenv("DB_URI"))
-
+DATABASE_URL = os.environ['DATABASE_URL']
+database = DatabaseAccess(os.environ['DATABASE_URL'])
 
 def check_chats(): 
 
-    bot = MessengerBot(EMAIL, PASSWORD)
+    # Prep 
+    bot = DiscordBot(TOKEN)
 
     groups: list[Group] = database.group_resource.get_groups()
 
@@ -45,16 +47,16 @@ def check_chats():
     # Check for each group
     for group in groups:
 
-        # Check for commands
-        commands: list[dict] = bot.check_commands(group.id, BOT_REFRESH_RATE)
+        # Check for commands 
+        commands: list[dict] = asyncio.run(bot.check_commands(group.id, BOT_REFRESH_RATE))   
         commandCenter = CommandCenter(bot, group.id)
         for command_dict in commands: 
             command: Command = command_dict['command']
             message: Message = command_dict['message']
-            commandCenter.execute(message.text, message.uid, command, database)
+            commandCenter.execute(message.content, message.author.id, command, database)
 
         # Get session and schedule
-        session = database.session_resource.get_active_sessions(group.id)
+        session: Optional[Session] = database.session_resource.get_active_session(group.id)
         schedule = [s for s in SCHEDULES if s.id == group.schedule_id][0]
         
         # There is an ongoing session
@@ -72,29 +74,40 @@ def check_chats():
 
                 # No Contributions - Kill Bot
                 if not contributions:
+
                     last_session_number = database.session_resource.get_last_active_session_number(group.id)
                     participation_timeout = 3 - (ongoing_session.session_number - last_session_number)
                     if participation_timeout > 0:
-                        GameMaster.no_contributions(participation_timeout)
+                        asyncio.run(bot.send_message(
+                            message=GameMaster.no_contributions(participation_timeout),
+                            channel_id=group.id
+                        ))
                     else:
                         group.is_active = False    
                         database.group_resource.update_group(group)
-                        GameMaster.killing_bot()
-                        
-                    continue
+                        asyncio.run(bot.send_message(
+                            message=GameMaster.killing_bot(),
+                            channel_id=group.id
+                        ))
 
-                # User Streak Update
-                streaks = {}
-                for contribution in contributions:
-                    user: User = database.group_resource.get_user_by_id(contribution.user_id, group.id)
-                    user.streak = user.streak + 1 if user.last_participation == ongoing_session.session_number - 1 else 1
-                    user.last_participation = ongoing_session.session_number
-                    streaks[user.name] = user.streak
-                    database.group_resource.update_user(user)
+                # Contributions Detected
+                else: 
 
-                # Close Participation
-                gameMaster = GameMaster(bot, theme, group.id)
-                gameMaster.close_participation(contributions, streaks)
+                    # User Streak Update
+                    streaks = {}
+                    for contribution in contributions:
+                        user: User = database.group_resource.get_user_by_id(contribution.user_id, group.id)
+                        user.streak = user.streak + 1 if user.last_participation == ongoing_session.session_number - 1 else 1
+                        user.last_participation = ongoing_session.session_number
+                        streaks[user.name] = user.streak
+                        database.group_resource.update_user(user)
+
+                    # Close Participation
+                    gameMaster = GameMaster(session=ongoing_session)
+                    asyncio.run(bot.send_message(
+                        message=gameMaster.close_participation(contributions, streaks),
+                        channel_id=group.id
+                    ))
                 
             # End Event
             elif detected_event == 'End':
@@ -119,14 +132,18 @@ def check_chats():
                     user.points = user.points + contribution.points
 
                 # Close Votes
-                gameMaster = GameMaster(bot, theme, group.id)
-                gameMaster.close_votes(votes, winners)
+                gameMaster = GameMaster(session=ongoing_session)
+                asyncio.run(bot.send_message(
+                    message=gameMaster.close_votes(votes, winners),
+                    channel_id=group.id
+                ))
+    
 
                 # Close Session 
                 database.session_resource.set_session_inactive(ongoing_session)
 
         # No sesssion ongoing - Only start a session when there is no ongoing session
-        elif group.is_active: 
+        elif session is None and group.is_active: 
 
             # Check the events for today
             now = datetime.datetime.now()
@@ -152,25 +169,8 @@ def check_chats():
                 database.session_resource.create_session(session)
 
                 # New GameMaster
-                gameMaster = GameMaster(bot, theme, group.id)
-                gameMaster.start()
-
-
-def session():
-
-    bot = MessengerBot(EMAIL, PASSWORD)
-
-    session = Session(theme=pick_theme(), session_number=get_session_number())
-
-    session.start()
-    schedule.every().day.at(session.vote_time.strftime("%H:%M")).do(session.close_participations)
-    schedule.every().day.at(session.end_time.strftime("%H:%M")).do(session.close_votes)
-
-
-# Schedule the message to send every day at a specific time
-schedule.every().day.at("09:00").do(session)
-
-
-while True:
-    schedule.run_pending()
-    time.sleep(BOT_REFRESH_RATE)
+                gameMaster = GameMaster(session=ongoing_session)
+                asyncio.run(bot.send_message(
+                    message=gameMaster.start(theme),
+                    channel_id=group.id
+                ))

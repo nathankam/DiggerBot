@@ -1,17 +1,19 @@
-from data.commands import COMMANDS
-from data.schedules import SCHEDULES
-from models.message import Command
-from persistence.database import DatabaseAccess
-from persistence.models.group import Group
-from persistence.models.user import User
-from services.messenger import MessengerBot
+import asyncio
+from src.data.commands import COMMANDS
+from src.data.schedules import SCHEDULES
+from src.models.message import Command
+from src.persistence.database import DatabaseAccess
+from src.persistence.models.group import Group
+from src.persistence.models.user import User
+from src.services.discord import DiscordBot
+from src.services.messenger import MessengerBot
 
 
 class CommandCenter:
 
-    def __init__(self, bot: MessengerBot, group_id: int, user_id: int):
+    def __init__(self, bot: DiscordBot, group_id: int, user_id: int):
 
-        self.bot: MessengerBot = bot
+        self.bot: DiscordBot = bot
         self.group_id: int = group_id
 
     def execute(self, message: str, user_id: int, command: Command, db_access: DatabaseAccess):
@@ -21,7 +23,10 @@ class CommandCenter:
         if command.restricted and not user.admin:
 
             message = f'[{command.name}] -- You do not have permission to use this command'
-            self.bot.send_message(message, self.group_id)
+            asyncio.run(self.bot.send_message(
+                message=message, 
+                channel_id=self.group_id
+            ))
             return
 
         if command.code == '!help':
@@ -174,6 +179,9 @@ class CommandCenter:
                 message = f'[{command.name}] -- Error restarting group'
 
 
-
+        asyncio.run(self.bot.send_message(
+            message=message, 
+            channel_id=self.group_id
+        ))
         
 

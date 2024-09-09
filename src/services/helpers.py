@@ -1,16 +1,15 @@
+import asyncio
 import datetime
 import random
-from typing import Union
-from data.challenges import CHALLENGES
-from data.commands import COMMANDS
-from models.message import Command
-from models.music import Genre, SubGenre, Theme
+from src.data.challenges import CHALLENGES
+from src.models.music import Theme
 
-from data.reacts import REACTS
-from data.genres import GENRES, SUBGENRES
-from persistence.models.contribution import Contribution
-from persistence.models.session import Session
-from services.messenger import MessengerBot
+from src.data.reacts import REACTS
+from src.data.genres import GENRES, SUBGENRES
+from src.persistence.models.contribution import Contribution
+from src.persistence.models.session import Session
+from src.services.discord import DiscordBot
+from src.services.messenger import MessengerBot
 
 
 def pick_theme(group_settings: dict = None) -> Theme: 
@@ -94,8 +93,7 @@ def detect_contributions(bot: MessengerBot, session: Session) -> list[Contributi
     return participations
 
 
-
-def count_votes(bot: MessengerBot, session: Session, contributions: list[Contribution]):
+def count_votes(bot: DiscordBot, session: Session, contributions: list[Contribution]):
 
     # Session Group ID
     group_id = session.group_id
@@ -108,21 +106,22 @@ def count_votes(bot: MessengerBot, session: Session, contributions: list[Contrib
     # Count Votes
     for contribution in contributions: 
         
-        react_dict = bot.get_message_reacts(
+        reactions = asyncio.run(bot.get_message_reacts(
             message_id = contribution.message_id, 
             group_id = group_id
-        )
-
-        translation = {a.emoji: a.name for a in REACTS}
+        ))
+   
+        user_reacts = {user: reaction.emoji async for user in reaction.users() for reaction in reactions}
+        emoji_translation = {a.emoji: a.name for a in REACTS}
 
         # Translate the reacts // Exclude the user's own reaction
-        react_dict_translated = {u: translation[r] for u, r in react_dict.items() if u != contribution.user_id}
+        react_dict_translated = {u: emoji_translation[r] for u, r in user_reacts.items() if u != contribution.user_id}
 
         # Count the votes
         vote_count = len([r for r in react_dict_translated.values() if r in ['VOTE', 'COUPDECOEUR']])
 
         votes[contribution.user_id] = vote_count
-        reacts[contribution.user_id] = react_dict
+        reacts[contribution.user_id] = user_reacts
 
     # Sort Votes 
     votes = dict(sorted(votes.items(), key=lambda item: item[1], reverse=True))

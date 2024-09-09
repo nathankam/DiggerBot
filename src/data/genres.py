@@ -1,6 +1,6 @@
 
 
-from models.music import Genre, SubGenre
+from src.models.music import Genre, SubGenre
 
 GENRES = [
     Genre(

@@ -1,5 +1,5 @@
-fbchat
+discord.py==2.4.0
 python-dotenv
-schedule
+psycopg2-binary
 sqlalchemy
 

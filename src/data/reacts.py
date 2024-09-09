@@ -1,4 +1,4 @@
-from models.message import React
+from src.models.message import React
 
 REACTS = [
     React(

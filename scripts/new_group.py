@@ -1,6 +1,6 @@
 # Create a database connection
 import argparse, os
-from persistence.database import DatabaseAccess
+from src.persistence.database import DatabaseAccess
 
 
 database = DatabaseAccess(os.getenv("DB_URI"))

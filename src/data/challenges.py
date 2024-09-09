@@ -1,4 +1,4 @@
-from models.music import Challenge
+from src.models.music import Challenge
 
 CHALLENGES = [
     Challenge(

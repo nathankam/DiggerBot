@@ -3,32 +3,25 @@ import datetime
 import random
 from typing import Union
 
-from data.greetings import GREETINGS
-from data.reacts import REACTS
-from models.message import TextMessage
-from models.music import Challenge, Genre, SubGenre, Theme
-from models.participation import Participation
-from persistence.models.contribution import Contribution
-from persistence.models.session import Session
-from services.helpers import get_day_indicator
-from services.messenger import MessengerBot 
+from src.data.greetings import GREETINGS
+from src.data.reacts import REACTS
+from src.models.message import TextMessage
+from src.models.music import Challenge, Genre, SubGenre, Theme
+from src.models.participation import Participation
+from src.persistence.models.contribution import Contribution
+from src.persistence.models.session import Session
+from src.services.discord import DiscordBot
+from src.services.helpers import get_day_indicator
+from src.services.messenger import MessengerBot 
 
 
 def get_user_streak(user: str) -> int: 
     return 0
 
-
 class GameMaster: 
 
-    def __init__(
-        self, 
-        bot: MessengerBot,
-        theme: Theme, 
-        session: Session, 
-    ): 
+    def __init__(self, session: Session): 
         
-        self.bot: MessengerBot = bot
-        self.theme: Theme = theme
         self.session: Session = session
 
         self.translations = {
@@ -44,7 +37,7 @@ class GameMaster:
         }
             
 
-    def start(self):
+    def start(self, theme: Theme) -> str:
 
         # Prep 
         now = self.session.start_at
@@ -59,12 +52,11 @@ class GameMaster:
         info = f"Vous avez jusqu'à {self.translations(indicator)} {vote_hour} pour proposer une track!"
 
         # Session Start
-        return TextMessage(
-            text=f'{snumber}\n\n {greetings} \n\n{theme} \n{info}'
-        )
+        return f'{snumber}\n\n {greetings} \n\n{theme} \n{info}'
+        
     
 
-    def close_participation(self, contributions: list[Contribution], streaks: dict) -> TextMessage: 
+    def close_participation(self, contributions: list[Contribution], streaks: dict) -> str: 
 
         # Vote end
         now = self.session.vote_at
@@ -77,12 +69,10 @@ class GameMaster:
         reacts_list = 'Voter avec: \n' + '\n'.join([f'{a.emoji} - {a.meaning}' for a in REACTS])
         vote_end = f'Vous avez jusqu\'à {self.translations(indicator)} {end_hour} pour voter!'
 
-        return TextMessage(
-            text=f'{info} \n{participants} \n{reacts_list} \n{vote_end}',
-        )
+        return f'{info} \n{participants} \n{reacts_list} \n{vote_end}',
     
     
-    def close_votes(self, votes: dict, winners: list) -> TextMessage: 
+    def close_votes(self, votes: dict, winners: list) -> str: 
 
         info = f'Les votes sont clos! {len(votes)} votes ont été enregistrés.'
         voters = '\n'.join([f'➡️ {user} - {vote_count} votes' for user, vote_count in votes.items() if vote_count > 0])
@@ -93,30 +83,26 @@ class GameMaster:
 
         congratulations = 'Félicitations! 🎉'
 
-        return TextMessage(
-            text=f'{info} \n{voters} \n{win_msg} \n{congratulations}',
-        )
+        return f'{info} \n{voters} \n{win_msg} \n{congratulations}',
+
     
     @staticmethod
-    def no_contributions(participation_timeout) -> TextMessage: 
+    def no_contributions(participation_timeout) -> str: 
 
         info1 = 'Aucune participation n\'a été enregistrée. 😢'
         info2 = 'Vous pouvez diminuer la fréquence des sessions en modifiant le schedule avec !set_schedule <schedule_id>. Listez la liste des schedules avec !list_schedules.'
         info3 = f"Le bot s'arrêtera d'ici {participation_timeout} session(s) si aucune participation n'est enregistrée."
 
-        return TextMessage(
-            text=f'{info1} \n{info2} \n{info3}'
-        )
+        return f'{info1} \n{info2} \n{info3}'
     
 
     @staticmethod
-    def killing_bot() -> TextMessage:
+    def killing_bot() -> str:
 
         info1 = 'Le bot s\'arrête faute de participations. 😢'
         info2 = 'Vous pouvez redémarrer le bot avec !start.'
-        return TextMessage(
-            text=f'{info1} \n{info2}'
-        )
+        return f'{info1} \n{info2}'
+        
     
 
 

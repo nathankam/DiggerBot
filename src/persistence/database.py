@@ -1,5 +1,5 @@
-from persistence.repositories.session_repository import SessionDbResource
-from persistence.repositories.group_repository import GroupDbResource
+from src.persistence.repositories.session_repository import SessionDbResource
+from src.persistence.repositories.group_repository import GroupDbResource
 from src.persistence.models.base import Base
 
 from sqlalchemy import create_engine

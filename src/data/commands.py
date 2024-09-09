@@ -1,4 +1,4 @@
-from models.message import Command
+from src.models.message import Command
 
 
 COMMANDS = [
