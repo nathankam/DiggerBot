@@ -1,0 +1,5 @@
+fbchat
+python-dotenv
+schedule
+sqlalchemy
+
