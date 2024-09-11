@@ -36,7 +36,7 @@ DATABASE_URL = os.environ.get('DATABASE_URL').replace("://", "ql://", 1)
 
 # Discord Bot / Database
 bot = DiscordBot()
-database = DatabaseAccess(os.environ['DATABASE_URL'])
+database = DatabaseAccess(DATABASE_URL)
 
 async def check_chats(): 
 
