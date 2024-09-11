@@ -32,7 +32,7 @@ TEST_DATE_UTC=datetime.datetime(2000, 1, 1, 8, 3, 0, 0, pytz.UTC)
 # Load credentials from .env file
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-DATABASE_URL = os.environ.get(['DATABASE_URL']).replace("://", "ql://", 1)
+DATABASE_URL = os.environ.get('DATABASE_URL').replace("://", "ql://", 1)
 
 # Discord Bot / Database
 bot = DiscordBot()
