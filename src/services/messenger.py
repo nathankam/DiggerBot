@@ -1,3 +1,4 @@
+"""
 import datetime
 import pickle
 from typing import Any
@@ -87,3 +88,4 @@ class MessengerBot(Client):
             return reacts
         
         return None
+"""

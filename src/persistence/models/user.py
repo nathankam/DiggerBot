@@ -1,15 +1,13 @@
 from sqlalchemy import JSON, Column, Integer, String, BigInteger, DateTime, Boolean
 from src.persistence.models.base import Base
 
-import datetime
-
 class User(Base):
 
     __tablename__ = 'users'
 
-    id = Column(BigInteger, primary_key=True)
-    messenger_id = Column(String(255))
-    group_id = Column(String(255))
+    id = Column(String(255), primary_key=True)
+    discord_id = Column(BigInteger)
+    group_id = Column(BigInteger)
     name = Column(String(255))
     points = Column(Integer, default=0)
     streak = Column(BigInteger, default=0)
@@ -20,10 +18,10 @@ class User(Base):
     admin = Column(Boolean, default=False)
 
 
-    def __init__(self, messenger_id, group_id, name):
+    def __init__(self, discord_id, group_id, name):
 
-        self.id = f'{group_id}-{messenger_id}'
-        self.messenger_id = messenger_id
+        self.id = f'{group_id}-{discord_id}'
+        self.discord_id = discord_id
         self.group_id = group_id
         self.name = name
 

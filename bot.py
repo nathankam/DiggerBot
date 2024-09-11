@@ -1,5 +1,6 @@
-from src.services.main import check_chats
+import subprocess
 
 # Run the bot
 if __name__ == "__main__":
-    check_chats()
+    
+    subprocess.run(["python", "src/services/main.py"])

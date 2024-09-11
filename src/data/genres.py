@@ -1,60 +1,59 @@
 
 
-from src.models.music import Genre, SubGenre
+from src.models.music import Genre, SubGenre, GenreName
 
 GENRES = [
     Genre(
-        name="Rock",
+        name=GenreName.ROCK,
         description="Rock music is a broad genre of popular music that originated as 'rock and roll' in the United States in the late 1940s and early 1950s, developing into a range of different styles in the mid-1960s and later, particularly in the United Kingdom and the United States."
     ), 
     Genre(
-        name="Pop",
+        name=GenreName.POP,
         description="Pop music is a genre of popular music that originated in its modern form during the mid-1950s in the United States and the United Kingdom."
     ), 
     Genre(
-        name="Rap",
+        name=GenreName.RAP,
         description="Rap is a vocal style, usually coming together with hip-hop, the musical genre off-shoot of the hip hop culture."
     ),
     Genre(
-        name="Jazz",
+        name=GenreName.JAZZ,
         description="Jazz is a music genre that originated in the African-American communities of New Orleans, United States, in the late 19th and early 20th centuries, with its roots in blues and ragtime."
     ),
     Genre(
-        name="Classical",
+        name=GenreName.CLASSICAL,
         description="Classical music is art music produced or rooted in the traditions of Western culture, generally considered to have begun in Europe after the fall of the Western Roman Empire in the late 5th century and continuing to present day."
     ),
     Genre(
-        name="Electronic",
+        name=GenreName.ELECTRONIC,
         description="Electronic music is music that employs electronic musical instruments, digital instruments, or circuitry-based music technology in its creation.",
         weight=4,
     ),
     Genre(
-        name="Reggae",
+        name=GenreName.REGGAE,
         description="Reggae is a music genre that originated in Jamaica in the late 1960s."
     ),
     Genre(
-        name="House",
+        name=GenreName.HOUSE,
         description="House music is a genre of electronic dance music characterized by a repetitive four-on-the-floor beat and a tempo of 120 to 130 beats per minute.",
         weight=4,
     ), 
     Genre(
-        name="Techno",
+        name=GenreName.TECHNO,
         description="Techno is a genre of electronic dance music that is characterized by a repetitive beat which is generally produced for use in a continuous DJ set."
     ),
     Genre(
-        name="Disco",
+        name=GenreName.DISCO,
         description="Disco is a genre of dance music and a subculture that emerged in the 1970s from the United States' urban nightlife scene."
     ),
     Genre(
-        name="Folk",
+        name=GenreName.FOLK,
         description="Folk music includes traditional folk music and the genre that evolved from it during the 20th-century folk revival."
     ), 
     Genre(
-        name="Free Track", 
+        name=GenreName.ANY, 
         description="Free track! No genre restrictions on this one! Go wild :)"
     )
 ]
-
 
 SUBGENRES = [
     SubGenre(

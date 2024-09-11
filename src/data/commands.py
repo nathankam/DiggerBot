@@ -11,7 +11,7 @@ COMMANDS = [
         name='ADD USER',
         code='!user_create',
         description='Create a new user and add to the group',
-        instructions='!create <username> <messenger_id>',
+        instructions='!create <username> <discord_id>',
         restricted=True
     ),
     Command(
@@ -63,5 +63,39 @@ COMMANDS = [
         code='!set_schedule',
         description='Set the schedule for the group, takes effect next session.',
         instructions='!set_schedule <schedule_id>',
+    ),
+    Command(
+        name='SETTINGS',
+        code='!settings_show',
+        description='Show current settings'
+    ),
+    Command(
+        name='SETTINGS INC',
+        code='!settings_incognito',
+        description='Toggle incognito mode',
+        instructions='!settings_incognito <0/1>'
+    ),
+    Command(
+        name='SETTINGS GER',
+        code='!settings_ger',
+        description='Set the genre exploration ratio',
+        instructions='!settings_ger <ratio>'
+    ),
+    Command(
+        name='SETTINGS GSR',
+        code='!settings_gsr',
+        description='Set the genre/subgenre ratio',
+        instructions='!settings_gsr <ratio>'
+    ),
+    Command(
+        name='SETTINGS GPR',
+        code='!settings_gpr',
+        description='Set the genre proportions',
+        instructions='!settings_gpr <genre> <weight>'
+    ),
+    Command(
+        name='SETTINGS GPR SHOW',
+        code='!settings_sgprop',
+        description='Show the genre proportions'
     ),
 ]

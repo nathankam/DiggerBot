@@ -1,15 +1,43 @@
 from dataclasses import dataclass
 import datetime
+import pytz
 from typing import Literal, Optional, Union
-
-from sqlalchemy import Tuple 
 
 
 @dataclass(frozen=True)
 class Event:
     name: Literal['Start', 'Vote', 'End']
     time: str
+    
+    # Get the event datetime in UTC based on the timezone and the day of the week 
+    def get_event_datetime_utc(
+            self, 
+            event_timezone: str,
+            event_day: Literal['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'], 
+            now_utc : datetime.datetime = datetime.datetime.now(pytz.utc)
+    ) -> datetime.datetime:
+            
+        # Give 'NOW' to the function
+        tz = pytz.timezone(event_timezone)
+        now_tz = now_utc.astimezone(tz)
+        today = now_tz.strftime("%A").lower()
 
+        # If the event is today 
+        if event_day == today:
+            event_time = datetime.datetime.strptime(self.time, "%H:%M")
+            event_time = datetime.datetime.combine(now_tz.date(), event_time.time())
+            return event_time.astimezone(pytz.utc)
+        
+        # if the event is some day within the rest of the week 
+        delta_day = datetime.datetime.strptime(event_day, "%A").weekday() - datetime.datetime.strptime(today, "%A").weekday()
+        date_event = now_tz.date() + datetime.timedelta(days=delta_day)
+
+        # We create the event 
+        event_time = datetime.datetime.strptime(self.time, "%H:%M")
+        event_time = datetime.datetime.combine(date_event, event_time.time())
+
+        return event_time.astimezone(pytz.utc)
+    
 
 @dataclass(frozen=True)
 class Schedule:
@@ -23,75 +51,77 @@ class Schedule:
     friday: Optional[list[Event]] = None
     saturday: Optional[list[Event]] = None
     sunday: Optional[list[Event]] = None
+    
 
+    # Get the next events for the week
+    def get_next_events(self, start_time: datetime.datetime, timezone: str) -> Optional[list[tuple[str, Event]]]:
 
-    def get_next_event(self, current_day: str, current_hour: str) -> Optional[Tuple[str, str, Event]] :
+        # Get the day of the week and the hour
+        tz = pytz.timezone(timezone)
+        start_time_tz = start_time.astimezone(tz)
+        day = start_time_tz.strftime("%A")
+        hour = start_time_tz.strftime("%H")
+        minute = start_time_tz.strftime("%M")
 
         days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-        current_day_index = days.index(current_day.lower())
-        
-        # Check events for the current day
+        current_day_index = days.index(day.lower())
+
+        next_events = []
+
+        # Check events for the current day (comparison of tz hours)
         for event in getattr(self, days[current_day_index], []):
-            event_hour = event.time.split(":")[0]
-            if event_hour > current_hour: 
-                return 'today', current_day, event
-        
-        # Check events for the following days until the end of the week
+            event_time = datetime.datetime.strptime(event.time, "%H:%M")
+            event_hour = event_time.strftime("%H")
+            if int(event_hour) > int(hour): 
+                next_events.append((day, event))
+
+        # Check events for the following days until the end of the week        
         for i in range(1, 8 - current_day_index):
             next_day_index = (current_day_index + i) % 7
             for event in getattr(self, days[next_day_index], []): 
-                indicator = 'tomorrow' if i == 1 else days[next_day_index]
-                return indicator, days[next_day_index], event
-        
-        return None
-    
+                next_events.append((days[next_day_index], event))
 
-    def check_events(self, current_datetime: datetime.datetime) -> Optional[Literal['Start', 'Vote', 'End']]:
+        return next_events
+
+
+    # Check the current event
+    def check_events(self, now_utc: datetime.datetime, timezone: str) -> Optional[Literal['Start', 'Vote', 'End']]:
 
         # Get the current day, hour and minute
-        today = current_datetime.strftime("%A").lower()
-        hour = current_datetime.strftime("%H")
-        minute = int(current_datetime.strftime("%M")) // 10 * 10
+        today = now_utc.strftime("%A").lower()
+        hour = int(now_utc.strftime("%H"))
+        minute = int(now_utc.strftime("%M")) // 10 * 10
 
+        # Get today's events
         todays_event: Optional[list[Event]] = self.__dict__[today]
         if todays_event is None: return None
 
+        # Events are stated as %HH:%MM in the group's timezone
+        events = []
         for event in todays_event:
-            event_time = datetime.strptime(event.time, "%H:%M")
+            utc_event_time = event.get_event_datetime_utc(timezone, today, now_utc)
+            if utc_event_time.hour == hour and utc_event_time.minute == minute:
+                events.append(event.name)
 
-            if event_time.strftime("%H") == hour and event_time.strftime("%M") == minute:
-                return event.name
+        return events[0] if len(events) > 0 else None
             
 
+    # Get the next events dates // within the same week 
+    def get_events_dates(self, start_time: datetime.datetime, timezone: str) -> Optional[dict[Literal['vote', 'end'], datetime.datetime]]:
 
-    def get_events_dates(self, start_time: datetime.datetime) -> Optional[dict[Literal['vote', 'end'], datetime.datetime]]:
+        # Get the next events
+        all_events = self.get_next_events(start_time, timezone)
+        next_vote_events = [(d, e) for d, e in all_events if e.name == 'Vote']
+        next_end_events = [(d, e) for d, e in all_events if e.name == 'End']
+        next_vote_event = next_vote_events[0] if len(next_vote_events) > 0 else None
+        next_end_event = next_end_events[0] if len(next_end_events) > 0 else None 
 
-        start_day = start_time.strftime("%A").lower()
-        start_hour = start_time.strftime("%H")
+        # Events datetimes 
+        vote_event_time = next_vote_event[1].get_event_datetime_utc(timezone, next_vote_event[0], start_time) if next_vote_event else None
+        end_event_time = next_end_event[1].get_event_datetime_utc(timezone, next_end_event[0], start_time) if next_end_event else None
 
-        events_times = {}
+        return {'vote': vote_event_time, 'end': end_event_time}
 
-        day_vote, vote_event = self.get_next_event(start_day, start_hour)
-        if vote_event and vote_event.name == 'Vote':
-            vote_time = datetime.datetime.strptime(vote_event.time, "%H:%M")
-            delta_days = datetime.timedelta(days=(day_vote - start_time.weekday()))
-            delta_hours = datetime.timedelta(hours=vote_time.hour, minutes=vote_time.minute)
-            vote_datetime = start_time + delta_days + delta_hours
-            events_times['vote'] = vote_datetime
-        elif vote_event and vote_event.name != 'Vote':
-            return None
-
-        day_end, end_event = self.get_next_event(day_vote, vote_event)
-        if end_event and end_event.name == 'End':
-            end_time = datetime.datetime.strptime(end_event.time, "%H:%M")
-            delta_days = datetime.timedelta(days=(day_end - start_time.weekday()))
-            delta_hours = datetime.timedelta(hours=end_time.hour, minutes=end_time.minute)
-            end_datetime = start_time + delta_days + delta_hours
-            events_times['end'] = end_datetime
-        elif end_event and end_event.name != 'End':
-            return None
-
-        return events_times
     
   
     

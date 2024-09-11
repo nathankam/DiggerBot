@@ -20,9 +20,9 @@ class GroupDbResource:
     def update_group(self, group: Group):
 
         with self.session() as session:
-
+            updated_group = session.merge(group)
             session.commit()
-            session.refresh(group)
+            session.refresh(updated_group)
 
 
     def get_groups(self):
@@ -32,14 +32,21 @@ class GroupDbResource:
             return session.query(Group).all()
         
 
-    def get_group(self, group_id: str):
+    def get_group(self, group_id: int):
 
         with self.session() as session:
 
-            return session.query(Group).filter(Group.group_id == group_id).first()
+            return session.query(Group).filter(Group.id == group_id).first()
+        
+
+    def get_group_by_channel_id(self, channel_id: int):
+
+        with self.session() as session:
+
+            return session.query(Group).filter(Group.channel_id == channel_id).first()
         
     
-    def add_user_to_group(self, group: Group, user_id: str):
+    def add_user_to_group(self, group: Group, user_id: int):
 
         with self.session() as session:
 
@@ -48,33 +55,32 @@ class GroupDbResource:
             session.refresh(group)
 
 
-    def get_user_by_id(self, user_id: str, group_id: str):
+    def get_user_by_id(self, discord_id: int, group_id: int):
 
         with self.session() as session:
 
-            return session.query(User).filter(User.id == f'{group_id}-{user_id}').first()
+            return session.query(User).filter(User.id == f'{group_id}-{discord_id}').first()
         
 
-    def get_group_users(self, group_id: str):
+    def get_group_users(self, group_id: int):
 
         with self.session() as session:
 
             return session.query(User).filter(User.group_id == group_id).all()
         
 
-    def get_user_by_username(self, username: str, group_id: str):
+    def get_user_by_username(self, username: str, group_id: int):
             
             with self.session() as session:
     
                 return session.query(User).filter(User.name == username, User.group_id == group_id).first()
         
-    
     def update_user(self, user: User):
 
         with self.session() as session:
-
+            updated_user = session.merge(user)
             session.commit()
-            session.refresh(user)
+            session.refresh(updated_user)
 
 
     def add_user(self, user: User):
@@ -86,7 +92,7 @@ class GroupDbResource:
             session.refresh(user)
 
             
-    def remove_user_from_group(self, group: Group, user_id: str):
+    def remove_user_from_group(self, group: Group, user_id: int):
 
         with self.session() as session:
 

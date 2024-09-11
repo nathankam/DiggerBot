@@ -1,102 +1,107 @@
 import asyncio
 import datetime
 import random
-from src.data.challenges import CHALLENGES
-from src.models.music import Theme
 
-from src.data.reacts import REACTS
+import discord
+from src.data.challenges import CHALLENGES
 from src.data.genres import GENRES, SUBGENRES
+
+from src.models.music import GenreName, Theme
+from src.models.settings import Settings
+
 from src.persistence.models.contribution import Contribution
 from src.persistence.models.session import Session
-from src.services.discord import DiscordBot
-from src.services.messenger import MessengerBot
+from src.persistence.models.user import User
+from src.services.bot import DiscordBot
 
 
-def pick_theme(group_settings: dict = None) -> Theme: 
+def pick_theme(group_settings: Settings) -> Theme: 
 
     # Select Genre
-    weighted_genres = [genre for genre in GENRES for _ in range(genre.weight)]
-    genre = random.choice(weighted_genres)
+    genre_weights = group_settings.genre_weights 
+    weighted_genre_names = [genreName for genreName in GenreName for _ in range(genre_weights[genreName])]
+    genreNameChoice = random.choice(weighted_genre_names)
+    genre = [g for g in GENRES if genreNameChoice == g.name][0]
 
-    # Extract subgenres
+    # Subgenre / Genre Choice
     subgenres = [s for s in SUBGENRES if s.genre == genre]
-    genre_choice = random.choice([genre, *subgenres])
+    if random.random() < group_settings.genre_subgenre_ratio:
+        genre_choice, type_choice = random.choice(subgenres), 'SubGenre'
+    else: 
+        genre_choice, type_choice = genre, 'Genre'
 
     # Select Challenge
     challenge = random.choice(CHALLENGES)
-
-    # Decide between Genre and Challenge
-    GENRE_CHALLENGE_RATIO = 0.75
-    if random.random() < GENRE_CHALLENGE_RATIO:
-        return Theme(
-            type='Genre' if genre_choice == genre else 'SubGenre',
-            content=genre_choice
-        )
+    if random.random() < group_settings.genre_explo_ratio:
+        return Theme(type=type_choice, content=genre_choice)
     else:
-        return Theme(
-            type='Challenge',
-            content=challenge
-        )
+        return Theme(type='Challenge', content=challenge)
     
 
-def detect_contributions(bot: MessengerBot, session: Session) -> list[Contribution]:
+def detect_contributions(
+        messages: list[discord.Message], 
+        session: Session, 
+        users: list[User]
+    ) -> list[Contribution]:
 
     # Plateforms
     plateforms = [
-        {'name': 'SPOTIFY', 'search_string': 'spotify.com'},
-        {'name': 'YOUTUBE', 'search_string': 'youtube.com'},
+        {'name': 'SPOTIFY', 'search_string': '//open.spotify.com/'},
+        {'name': 'YOUTUBE', 'search_string': '//www.youtube.com/watch'},
     ]
 
     # Get Participations (link)
-    all_matches, pltfrm = [], []
+    all_matches: list[discord.Message] = []
+    pltfrm: list[str] = []
 
+    # Active Users
+    active_users = [u.discord_id for u in users if u.active and not u.frozen] 
+
+    # Search for plateforms / Active Users / Messages
     for plateform in plateforms:
-
-        matches = bot.get_group_messages_within_timeframe(
-            group_id=session.group_id,  
-            start_time=session.start_at, 
-            end_time=session.end_at,
-            search_string=plateform['search_string']
-        )
-
+        matches = [m for m in messages if plateform['search_string'] in m.content]
+        matches = [m for m in matches if m.author.id in active_users]
         all_matches.extend(matches) 
         pltfrm.extend([plateform['name'] for _ in range(len(matches))])
 
     # Create Participation objects
-    pp_matches = [
+    contributions: list[Contribution] = [
         Contribution(
-            message_id=m.message_id,
-            user_id=m.sender_id,
-            group_id=session.group_id,
+            message_id=m.id,
+            user_id=m.author.id,
+            channel_id=session.channel_id,
             session_id=session.id,
-            content=m.text,
-            plateform=pltfrm[i],
-            timestamp=m.timestamp,
+            content=m.content,
+            platform=pltfrm[i],
+            timestamp=m.created_at,
         )
-        for i, m in enumerate(all_matches)
+        for (i, m) in enumerate(all_matches)
     ]
 
     # Remove duplicate participations for each user
-    contributions_dict = {}
-    for contribution in pp_matches:
+    contributions_dict: dict[int, Contribution] = {}
+    for contribution in contributions:
         user = contribution.user_id
         if user not in contributions_dict:
             contributions_dict[user] = contribution
         else:
-            existing_participation = contributions_dict[user]
-            if contribution.timestamp > existing_participation.timestamp:
+            existing_contribution = contributions_dict[user]
+            if contribution.timestamp > existing_contribution.timestamp:
                 contributions_dict[user] = contribution
 
     # Convert dictionary back to list
     participations = list(contributions_dict.values())
+    print(f'[LOG] -- Unique Contributions Detected: {len(participations)}')
 
     return participations
 
 
-def count_votes(bot: DiscordBot, session: Session, contributions: list[Contribution]):
 
-    # Session Group ID
-    group_id = session.group_id
+async def count_votes(bot: DiscordBot, session: Session, contributions: list[Contribution]):
+
+    # Session Channel ID
+    channel_id = session.channel_id
+    channel = bot.get_channel(channel_id)
 
     # Initialize Votes
     reacts = dict.fromkeys([c.user_id for c in contributions], 0)
@@ -105,23 +110,28 @@ def count_votes(bot: DiscordBot, session: Session, contributions: list[Contribut
 
     # Count Votes
     for contribution in contributions: 
-        
-        reactions = asyncio.run(bot.get_message_reacts(
-            message_id = contribution.message_id, 
-            group_id = group_id
-        ))
-   
-        user_reacts = {user: reaction.emoji async for user in reaction.users() for reaction in reactions}
-        emoji_translation = {a.emoji: a.name for a in REACTS}
+
+        message = await channel.fetch_message(contribution.message_id)
+        reactions = message.reactions
+
+        user_reacts, user_emojid = {}, {}
+        for reaction in reactions:
+            reaction_users = [user async for user in reaction.users()]
+            for user in reaction_users:
+                user_reacts[user.id] = reaction.emoji
+                user_emojid[user.id] = reaction.emoji.id
+
 
         # Translate the reacts // Exclude the user's own reaction
-        react_dict_translated = {u: emoji_translation[r] for u, r in user_reacts.items() if u != contribution.user_id}
+        # emoji_translation = {a.emoji: a.name for a in REACTS}
+        # react_dict_translated = {u: emoji_translation[r] for u, r in user_reacts.items() if u != contribution.user_id}
 
         # Count the votes
-        vote_count = len([r for r in react_dict_translated.values() if r in ['VOTE', 'COUPDECOEUR']])
+        vote_count = len([r for r in user_emojid.values() if r in ['VOTE', 'COUPDECOEUR']])
 
         votes[contribution.user_id] = vote_count
         reacts[contribution.user_id] = user_reacts
+
 
     # Sort Votes 
     votes = dict(sorted(votes.items(), key=lambda item: item[1], reverse=True))
@@ -146,7 +156,7 @@ def count_votes(bot: DiscordBot, session: Session, contributions: list[Contribut
     if len(winners) == 2: 
         points[winners[0]] = 2
         points[winners[1]] = 2
-    if len(winners >= 3):
+    if len(winners) >= 3:
         for w in winners: 
             points[w] = 1
 
@@ -154,12 +164,6 @@ def count_votes(bot: DiscordBot, session: Session, contributions: list[Contribut
         points[winner] = 1
 
     return votes, reacts, winners, points, is_banger
-
-
-
-def get_session_number() -> int: 
-
-    return 1
 
 
 def get_day_indicator(datetime_now: datetime.datetime, datetime_next: datetime.datetime) -> str: 
