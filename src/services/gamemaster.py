@@ -10,9 +10,6 @@ from src.persistence.models.session import Session
 from src.services.helpers import get_day_indicator
 
 
-def get_user_streak(user: str) -> int: 
-    return 0
-
 class GameMaster: 
 
     def __init__(self, session: Session): 
@@ -30,7 +27,7 @@ class GameMaster:
             'saturday': 'samedi',
             'sunday': 'dimanche',
         }
-            
+
 
     def start(self, theme: Theme, timezone: str) -> str:
 
