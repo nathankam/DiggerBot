@@ -8,7 +8,7 @@ class GroupDbResource:
         self.session = session
 
 
-    def create(self, group: Group):
+    def create_group(self, group: Group):
 
         with self.session() as session:
 

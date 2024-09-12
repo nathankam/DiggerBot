@@ -22,7 +22,7 @@ from src.persistence.models.user import User
 
 from src.services.commands import CommandCenter
 from src.services.bot import DiscordBot
-from src.services.helpers import count_votes, detect_contributions, pick_theme
+from src.services.helpers import count_votes, detect_contributions, pick_theme, streak_update, welcome_user
 from src.services.gamemaster import GameMaster
 
 # TEST VARIABLES
@@ -42,8 +42,22 @@ async def check_chats():
 
     # Get all the groups
     groups: list[Group] = database.group_resource.get_groups()
-    if not groups: 
-        return
+    if not groups: return
+
+    # Check for new groups
+    groups = [group.channel_id for group in groups]
+    for guild in bot.guilds:
+
+        # New Group Creation
+        if guild.id not in groups: 
+            general_channel = [channel for channel in guild.text_channels if channel.name == 'general'][0]
+            group = Group(channel_id=general_channel.id, name=guild.name) 
+            database.group_resource.create_group(group)
+
+            await bot.send_message(
+                message=GameMaster.welcome(group.name),
+                channel_id=group.channel_id
+            )
 
     # Check for each group
     for group in groups:
@@ -65,8 +79,10 @@ async def check_chats():
         commands = CommandCenter.check_commands(messages)
         commandCenter = CommandCenter(bot, group.id)
         for (command, msg) in commands: 
-            info = commandCenter.execute(msg.content, msg.author.id, command, database)
+            info, success = commandCenter.execute(msg.content, msg.author.id, command, database)
             await bot.send_message(message=info, channel_id=group.channel_id)
+            if command.name in ['!user_create', '!me'] and success: await welcome_user(bot, group, msg.author.id)
+
 
         # Get session and schedule
         session: Optional[Session] = database.session_resource.get_active_session(group.channel_id)
@@ -109,10 +125,9 @@ async def check_chats():
                     )
                     database.session_resource.create_session(session)
 
-                    # New GameMaster
-                    gameMaster = GameMaster(session)
+                    # Start Event
                     await bot.send_message(
-                        message=gameMaster.start(theme, group.timezone),
+                        message=GameMaster.start(theme, group, session),
                         channel_id=group.channel_id
                     )
 
@@ -131,15 +146,13 @@ async def check_chats():
 
                 print(f'[LOG] -- Detected Vote Event')
                 try: 
-
                     # Detect Contributions
                     users = database.group_resource.get_group_users(group.id)
-                    contributions: list[Contribution] = detect_contributions(messages, session, users)
-                    if len(contributions) > 0: database.session_resource.create_contributions(contributions)
+                    pm_dict = await bot.get_users_pm(users, session.start_at) if session.incognito else {}
+                    contributions: list[Contribution] = detect_contributions(messages, session, users, pm_dict)
 
                     # No Contributions - Kill Bot
                     if len(contributions) == 0:
-
                         print(f'[LOG] -- No Contributions Detected')
 
                         # Participation Timeout
@@ -171,29 +184,31 @@ async def check_chats():
 
                         print(f'[LOG] -- Contributions Detected: {len(contributions)}')
 
+                        # Contributions
+                        database.session_resource.create_contributions(contributions)
+
+                        # Show Anonymous 
+                        ms = GameMaster.anonymous_contributions(contributions) if session.incognito else None
+                        if ms is not None: 
+                            for m in ms: bot.send_message(message=m, channel_id=group.channel_id)
+
                         # User Streak Update
                         streaks = {}
                         for contribution in contributions:
                             user: User = database.group_resource.get_user_by_id(contribution.user_id, group.id)
-                            print(f'[LOG] -- User {user}')
-                            if user is not None:
-                                user.streak = user.streak + 1 if user.last_participation == session.session_number - 1 else 1
-                                user.last_participation = session.session_number
-                                streaks[user.name] = user.streak
-                                database.group_resource.update_user(user)
-                            else:
-                                print(f"[ERR] -- User {contribution.user_id} not found")
+                            user, streak = streak_update(user, session, database)
+                            streaks[user.name] = streak
+                            database.group_resource.update_user(user)
 
                         # Close Participation
-                        gameMaster = GameMaster(session=session)
                         await bot.send_message(
-                            message=gameMaster.close_participation(contributions, streaks, group.timezone),
+                            message=GameMaster.close_participation(session, contributions, streaks, group.timezone),
                             channel_id=group.channel_id
                         )
 
                 except Exception as e:
                     error_message += f"[BOT] / Vote Event failed **{e}**\n"
-                    print(f"[ERR] -- Vote Event failed: {e}")
+
                     
             # End Event
             elif detected_event=='End' or TEST=='END':
@@ -222,9 +237,8 @@ async def check_chats():
                         user.points = user.points + contribution.points
 
                     # Close Votes
-                    gameMaster = GameMaster(session=session)
                     await bot.send_message(
-                        message=gameMaster.close_votes(votes, winners),
+                        message=GameMaster.close_votes(votes, winners),
                         channel_id=group.channel_id
                     )
 

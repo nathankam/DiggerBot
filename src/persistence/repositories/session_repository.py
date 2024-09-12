@@ -51,6 +51,8 @@ class SessionDbResource:
 
     def create_contributions(self, contributions: list[Contribution]):
 
+        if len(contributions) == 0: return
+
         with self.session() as session:
 
             session.add_all(contributions)

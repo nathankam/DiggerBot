@@ -5,6 +5,7 @@ import discord
 
 from src.data.commands import COMMANDS
 from src.persistence.models.group import Group
+from src.persistence.models.user import User
 
 class DiscordBot(discord.Client):
 
@@ -31,7 +32,7 @@ class DiscordBot(discord.Client):
             print("Channel not found")
 
 
-    async def get_last_messages(self, channel_id: int, last_check: datetime.datetime, limit=100):
+    async def get_last_messages(self, channel_id: int, last_check: datetime.datetime, limit=100) -> list[discord.Message]:
 
         # Get Channel
         channel = self.get_channel(channel_id)
@@ -53,6 +54,25 @@ class DiscordBot(discord.Client):
         
         except Exception as e: 
             print(f' -> [ERR] ---  Error fetching messages: {e}')
+
+
+    async def get_users_pm(self, users: list[User], last_check: datetime.datetime) -> dict[int, list[discord.Message]]:
+
+        # Go look for user dms
+        users_pm_dict = {}
+        for user in users:
+            user_dms = await self.get_last_messages(user.dm_channel_id, last_check)
+
+            # Filter out messages that are replies to other group concerns 
+            for dm in user_dms:
+                if dm.reference:
+                    parent = await dm.channel.fetch_message(dm.reference.message_id)
+                    if user.group_id not in parent.content: user_dms.remove(dm)
+
+            users_pm_dict[user.id] = user_dms
+
+        return users_pm_dict
+
 
     async def get_message_reactions(self, channel_id: int, message_id: int) -> Optional[list[discord.Reaction]]:
 

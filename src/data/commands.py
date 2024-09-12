@@ -8,6 +8,12 @@ COMMANDS = [
         description='List all available commands'
     ),
     Command(
+        name='ME',
+        code='!me',
+        description='Add yourself to the users',
+        instructions='!me <username>'
+    ),
+    Command(
         name='ADD USER',
         code='!user_create',
         description='Create a new user and add to the group',

@@ -6,11 +6,13 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(String(255), primary_key=True)
+    name = Column(String(255))
     discord_id = Column(BigInteger)
     group_id = Column(BigInteger)
-    name = Column(String(255))
+    dm_channel_id = Column(BigInteger, default=None)
     points = Column(Integer, default=0)
     streak = Column(BigInteger, default=0)
+    max_streak = Column(BigInteger, default=0)
     last_participation = Column(Integer, default=0)
     frozen = Column(Boolean, default=False)
     active = Column(Boolean, default=True)

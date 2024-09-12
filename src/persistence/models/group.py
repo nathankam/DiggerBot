@@ -14,13 +14,13 @@ class Group(Base):
     id = Column(BigInteger, primary_key=True)
     channel_id = Column(BigInteger)
     name = Column(String(255))
-    users = Column(JSON, default=[])
     settings = Column(JSON, default={})
     schedule_id = Column(BigInteger, default=1)
     timezone = Column(String(255), default='Europe/Paris')
     last_check = Column(TIMESTAMP(timezone=True), default=datetime.datetime.now(pytz.UTC))
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.now(pytz.UTC))
     is_active = Column(Boolean, default=True)
+
 
     def __init__(self, channel_id, name, timezone: str = 'Europe/Paris', settings: Settings = DEFAULT_SETTINGS):
 

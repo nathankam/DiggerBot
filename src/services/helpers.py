@@ -9,10 +9,12 @@ from src.data.genres import GENRES, SUBGENRES
 from src.models.music import GenreName, Theme
 from src.models.settings import Settings
 
+from src.persistence.database import DatabaseAccess
 from src.persistence.models.contribution import Contribution
 from src.persistence.models.session import Session
 from src.persistence.models.user import User
 from src.services.bot import DiscordBot
+from src.services.gamemaster import GameMaster
 
 
 def pick_theme(group_settings: Settings) -> Theme: 
@@ -26,7 +28,8 @@ def pick_theme(group_settings: Settings) -> Theme:
     # Subgenre / Genre Choice
     subgenres = [s for s in SUBGENRES if s.genre == genre]
     if random.random() < group_settings.genre_subgenre_ratio:
-        genre_choice, type_choice = random.choice(subgenres), 'SubGenre'
+        genre_choice = random.choice([genre, *subgenres])
+        type_choice = 'SubGenre'  if genre_choice == genre else 'Genre'
     else: 
         genre_choice, type_choice = genre, 'Genre'
 
@@ -41,7 +44,8 @@ def pick_theme(group_settings: Settings) -> Theme:
 def detect_contributions(
         messages: list[discord.Message], 
         session: Session, 
-        users: list[User]
+        users: list[User],
+        pm_dict = dict[int, list[discord.Message]]
     ) -> list[Contribution]:
 
     # Plateforms
@@ -53,6 +57,7 @@ def detect_contributions(
     # Get Participations (link)
     all_matches: list[discord.Message] = []
     pltfrm: list[str] = []
+    incog: list[bool] = []
 
     # Active Users
     active_users = [u.discord_id for u in users if u.active and not u.frozen] 
@@ -63,6 +68,18 @@ def detect_contributions(
         matches = [m for m in matches if m.author.id in active_users]
         all_matches.extend(matches) 
         pltfrm.extend([plateform['name'] for _ in range(len(matches))])
+        incog.extend([False for _ in range(len(matches))])
+
+    # Incognito Mode
+    if session.incognito:
+        for user_id, messages in pm_dict.items():
+            for plateform in plateforms: 
+                matches = [m for m in messages if plateform['search_string'] in m.content]
+                # If the message is a reply to another message than check the parent message's content
+                all_matches.extend(matches)
+                pltfrm.extend([plateform['name'] for _ in range(len(matches))])
+                incog.extend([True for _ in range(len(matches))])
+
 
     # Create Participation objects
     contributions: list[Contribution] = [
@@ -72,6 +89,7 @@ def detect_contributions(
             channel_id=session.channel_id,
             session_id=session.id,
             content=m.content,
+            anonymous=incog[i],
             platform=pltfrm[i],
             timestamp=m.created_at,
         )
@@ -166,6 +184,45 @@ async def count_votes(bot: DiscordBot, session: Session, contributions: list[Con
     return votes, reacts, winners, points, is_banger
 
 
+def streak_update(user: User, session: Session, database: DatabaseAccess) -> tuple[User, int]:
+
+    # User Streak Update
+    if user is None: 
+        return None, 0
+
+    # Streak Calculation
+    if user.last_participation == session.session_number - 1 and not user.frozen:
+        user.streak = user.streak + 1
+    elif not user.frozen or user.last_participation != session.session_number - 1: 
+        user.streak = 1
+    else: pass
+
+    # Last Participation Update
+    user.last_participation = session.session_number
+
+    return user, user.streak
+
+    streaks[user.name] = user.streak
+    database.group_resource.update_user(user)
+
+
+
+
+async def welcome_user(user: User, bot: DiscordBot, database: DatabaseAccess):
+
+    # Get Discord Member
+    member: discord.User = await bot.get_user(user.discord_id)
+    
+    # Register User DM Channel Id 
+    dm_channel = await member.create_dm()
+    user.dm_channel_id = dm_channel.id
+    database.group_resource.update_user(user)
+
+    # Send Welcome Message
+    await dm_channel.send(GameMaster.welcome_user(user.group_id, user.name))
+    
+
+
 def get_day_indicator(datetime_now: datetime.datetime, datetime_next: datetime.datetime) -> str: 
 
     if datetime_now.day == datetime_next.day:
@@ -174,3 +231,6 @@ def get_day_indicator(datetime_now: datetime.datetime, datetime_next: datetime.d
         return 'tomorrow'
     else:
         return datetime_next.strftime("%A").lower()
+    
+
+

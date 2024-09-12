@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, TIMESTAMP, Column, String, BigInteger, Integer, DateTime, Boolean
+from sqlalchemy import JSON, TIMESTAMP, Column, String, BigInteger, Integer, Boolean
 from src.persistence.models.base import Base
 
 class Contribution(Base):
@@ -12,6 +12,7 @@ class Contribution(Base):
     session_id = Column(BigInteger)
     platform = Column(String(255))
     content = Column(String(255))
+    anonymous = Column(Boolean)
     timestamp = Column(TIMESTAMP(timezone=True))
     settings = Column(JSON, default={})
     reacts = Column(JSON, default={})
@@ -20,7 +21,7 @@ class Contribution(Base):
     banger = Column(Boolean, default=False)
 
 
-    def __init__(self, user_id, message_id, channel_id, session_id, content, platform, timestamp):
+    def __init__(self, user_id, message_id, channel_id, session_id, content, anonymous, platform, timestamp):
 
         self.user_id = user_id
         self.session_id = session_id
