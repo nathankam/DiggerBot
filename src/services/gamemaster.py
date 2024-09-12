@@ -9,7 +9,6 @@ from src.models.music import Theme
 from src.persistence.models.contribution import Contribution
 from src.persistence.models.group import Group
 from src.persistence.models.session import Session
-from src.services.helpers import get_day_indicator
 
 
 TRANSLATIONS = {
@@ -34,7 +33,7 @@ class GameMaster:
         tz = pytz.timezone(group.timezone)
         now = session.start_at.astimezone(tz)
         vote_time = session.vote_at.astimezone(tz)
-        indicator = get_day_indicator(now, vote_time)
+        indicator = GameMaster.get_day_indicator(now, vote_time)
         vote_hour = vote_time.strftime('%H:%M')
 
         # Message
@@ -54,7 +53,7 @@ class GameMaster:
         tz = pytz.timezone(timezone)
         now = session.vote_at.astimezone(tz)
         end_time = session.end_at.astimezone(tz)
-        indicator = get_day_indicator(now, end_time)
+        indicator = GameMaster.get_day_indicator(now, end_time)
         end_hour = end_time.strftime('%H:%M')
 
         m = f'Les participations sont closes! {len(contributions)} participations ont été enregistrées.\n\n' + \
@@ -81,7 +80,7 @@ class GameMaster:
 
         return messages
     
-    
+
     @staticmethod
     def close_votes(votes: dict, winners: list) -> str: 
 
@@ -133,6 +132,18 @@ class GameMaster:
             f'Voila, tu sais tout! Hate d\'écouter ce que tu vas partager! 🎷\n'
         
         return m
+    
+
+    @staticmethod
+    def get_day_indicator(datetime_now, datetime_next): 
+
+        if datetime_now.day == datetime_next.day:
+            return 'today'
+        elif datetime_next.day - datetime_now.day == 1:
+            return 'tomorrow'
+        else:
+            return datetime_next.strftime("%A").lower()
+
     
     @staticmethod
     def incognito_on() -> str: 

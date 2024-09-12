@@ -223,14 +223,4 @@ async def welcome_user(user: User, bot: DiscordBot, database: DatabaseAccess):
     
 
 
-def get_day_indicator(datetime_now: datetime.datetime, datetime_next: datetime.datetime) -> str: 
-
-    if datetime_now.day == datetime_next.day:
-        return 'today'
-    elif datetime_next.day - datetime_now.day == 1:
-        return 'tomorrow'
-    else:
-        return datetime_next.strftime("%A").lower()
-    
-
 
