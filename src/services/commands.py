@@ -37,7 +37,7 @@ class CommandCenter:
 
             message = self.title(command, 'Available commands')
             commands = '\n'.join([
-                f'- **{self.padding_space(c.code, 10)}** *{c.description}*' + (f' / {c.instructions}' if c.instructions else '') 
+                f'```{self.padding_space(c.code, 10)}** *{c.description}*' + (f' / {c.instructions}```' if c.instructions else '') 
                 for c in COMMANDS])
             message = message + commands
 
@@ -168,7 +168,7 @@ class CommandCenter:
 
             try: 
                 message = self.title(command, 'Available schedules')
-                schedules = '\n'.join([f'* **{s.id}** - {self.padding_space(s.name, 20)} *{s.description}*' for s in SCHEDULES])
+                schedules = '\n'.join([f'* **{s.id}** --- {s.name} --- *{s.description}*' for s in SCHEDULES])
                 message = message + schedules
             except Exception as e:
                 message = self.warning(command, f'Error listing schedules *{e}*')
@@ -383,7 +383,7 @@ class CommandCenter:
     def padding_space(message: str, max_space: int) -> str:
         message_length = len(message)
         padding = max_space - message_length
-        return '```' + message + '  ' * padding + '```'
+        return  message + '  ' * padding
     
     
     @staticmethod

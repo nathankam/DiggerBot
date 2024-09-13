@@ -26,8 +26,10 @@ from src.services.helpers import count_votes, detect_contributions, pick_theme, 
 from src.services.gamemaster import GameMaster
 
 # TEST VARIABLES
-TEST=None
-TEST_DATE_UTC=datetime.datetime(2000, 1, 1, 8, 3, 0, 0, pytz.UTC)
+TEST = None 
+TEST_DATE_UTC = datetime.datetime(2000, 1, 1, 8, 3, 0, 0, pytz.UTC)
+# -> Switch TEST_DATE_UTC to START/VOTE/END to force events
+# -> Synchronize the TEST_DATE with an event in the schedule (1 jour before to account for timzeone)
 
 # Load credentials from .env file
 load_dotenv()
@@ -42,22 +44,32 @@ async def check_chats():
 
     # Get all the groups
     groups: list[Group] = database.group_resource.get_groups()
-    if not groups: return
 
     # Check for new groups
-    groups = [group.channel_id for group in groups]
-    for guild in bot.guilds:
+    try: 
+        group_ids = [group.channel_id for group in groups]
+        for guild in bot.guilds:
 
-        # New Group Creation
-        if guild.id not in groups: 
-            general_channel = [channel for channel in guild.text_channels if channel.name == 'general'][0]
+            # Guild Text Channels
+            general_channel = next((channel for channel in guild.text_channels if channel.name == 'general'), None)
+
+            if general_channel is None: continue # No General Channel
+            if general_channel.id in group_ids: continue # Already in the database
+
+            # Create Groupe
             group = Group(channel_id=general_channel.id, name=guild.name) 
+            groups.append(group)
             database.group_resource.create_group(group)
 
             await bot.send_message(
-                message=GameMaster.welcome(group.name),
+                message=GameMaster.welcome(),
                 channel_id=group.channel_id
             )
+
+    except Exception as e:
+        await bot.send_message(f"[BOT] / New Group Creation failed **{e}**", group.channel_id)
+        print(traceback.format_exc())
+        return
 
     # Check for each group
     for group in groups:
@@ -83,7 +95,6 @@ async def check_chats():
             await bot.send_message(message=info, channel_id=group.channel_id)
             if command.name in ['!user_create', '!me'] and success: await welcome_user(bot, group, msg.author.id)
 
-
         # Get session and schedule
         session: Optional[Session] = database.session_resource.get_active_session(group.channel_id)
         schedule = [s for s in SCHEDULES if s.id == group.schedule_id][0]
@@ -103,7 +114,6 @@ async def check_chats():
 
                 print(f'[LOG] -- Detected Start Event')
                 try: 
-
                     # Get the next scheduled vents
                     scheduled_events = schedule.get_events_dates(now_utc, group.timezone)
                     if scheduled_events is None: print("Error in next events scheduling")
@@ -208,13 +218,11 @@ async def check_chats():
 
                 except Exception as e:
                     error_message += f"[BOT] / Vote Event failed **{e}**\n"
-
                     
             # End Event
             elif detected_event=='End' or TEST=='END':
                     
                 try: 
-
                     print(f'[LOG] -- Detected End Event')
 
                     # Get Contributions   

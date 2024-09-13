@@ -99,18 +99,17 @@ class GameMaster:
     def welcome(): 
 
         m = f'\n**Bienvenue!** 🎶' + \
-            f'\n\nJe suis DiggerBot, un bot dedié à la découverte musicale!' + \
-            f'La musique est faire pour être partagée! L\'idée ici c\'est de collaborer pour découvrir de nouvelles pépites et élargir ensemble notre horizon musical.' + \
-            f'\nA chaque session, je propose un thème et les membres du groupe sont libres de participer en partagant un lien Spotify, Youtube ou Soundcloud.' + \
-            f'Un peu comme un club de lecture, mais pour découvrir des artistes et des sons!' + \
-            f'A la fin du temps imparti pour partager son lien, tout le monde peut réagir aux contributions des autres avec des reacts qui correspondent à différent types de vote.' + \
+            f'\n\n- Je suis DiggerBot, passioné de musique, je suis toujours à la recherche de nouveaux son! ' + \
+            f'L\'objectif de ce groupe c\'est de collaborer pour découvrir de nouvelles choses. ' + \
+            f'\n- A chaque session, je propose un thème et les membres du groupe sont libres de participer en partagant un lien Spotify, Youtube ou Soundcloud. ' + \
+            f'A la fin du temps imparti, tout le monde peut réagir aux contributions des autres avec des reacts qui correspondent à différent types de vote.' + \
             f'Les musiques les plus votées rapportent des points pour encourager les plus fins explorateurs et un système de streak/badges récompense les participants les plus assidus.' + \
-            f'Tout les mois, je publie des statistiques sur les sessions, crée une playlist spotify avec les meilleurs musiques du mois et descerne le *Digger-of-the-Month Award*.' + \
-            f'\nComme chaque groupe est unique, vous pouvez personnaliser mes paramètres pour que je m\'adapte à vos préférences.' + \
+            f'Tout les mois, je publie des statistiques sur les sessions, crée une playlist spotify avec les meilleurs musiques du mois et descerne le *Digger-of-the-Month* Award.' + \
+            f'\n- Comme chaque groupe est unique, vous pouvez personnaliser mes paramètres pour que je m\'adapte à vos préférences.' + \
             f'Vous pouvez par exemple changer la fréquence à laquelle je lance les sessions en selectionnant un *schedule*, ' + \
             f'ou encore changer la fréquence à laquelle chaque genre musical est proposé...' + \
-            f'\nPour commencer, tape ```!me <username>``` pour créer un profil à ton nom.' + \
-            f'\n\n*Taper ```!help``` pour plus d\'infos sur comment interragir avec mes paramètres.*\n'
+            f'\n\nPour commencer, tape !me <username> pour créer un profil à ton nom.' + \
+            f'\n\n*Taper !help pour plus d\'infos sur comment interragir avec mes paramètres.*\n'
 
         return m
     
