@@ -1,9 +1,9 @@
-import argparse
 import traceback
 import datetime
 import json
 from typing import Optional
 from dotenv import load_dotenv
+
 import os, sys, asyncio
 import discord
 import pytz
@@ -22,13 +22,13 @@ from src.persistence.models.user import User
 
 from src.services.commands import CommandCenter
 from src.services.bot import DiscordBot
-from src.services.helpers import count_votes, detect_contributions, pick_theme, streak_update, welcome_user
+from src.services.helpers import compute_streak, count_votes, detect_contributions, pick_theme, welcome_user
 from src.services.gamemaster import GameMaster
 
 # TEST VARIABLES
-TEST = None 
-TEST_DATE_UTC = datetime.datetime(2000, 1, 1, 8, 3, 0, 0, pytz.UTC)
-# -> Switch TEST_DATE_UTC to START/VOTE/END to force events
+TEST = 'DATE'
+TEST_DATE_UTC = datetime.datetime(2000, 1, 1, 16, 3, 0, 0, pytz.UTC)
+# -> Switch TEST_DATE_UTC to START/VOTE/END to force events or DATE to test a specific date
 # -> Synchronize the TEST_DATE with an event in the schedule (1 jour before to account for timzeone)
 
 # Load credentials from .env file
@@ -46,33 +46,27 @@ async def check_chats():
     groups: list[Group] = database.group_resource.get_groups()
 
     # Check for new groups
-    try: 
-        group_ids = [group.channel_id for group in groups]
-        for guild in bot.guilds:
+    group_ids = [group.channel_id for group in groups]
+    for guild in bot.guilds:
 
-            # Guild Text Channels
-            general_channel = next((channel for channel in guild.text_channels if channel.name == 'general'), None)
+        # Guild Text Channels
+        general_channel = next((channel for channel in guild.text_channels if channel.name == 'general'), None)
+        if general_channel is None or general_channel.id in group_ids: 
+            print(f"[LOG] -- Skipping {guild.name}")
+            continue # No General Channel / Already in the database
 
-            if general_channel is None: continue # No General Channel
-            if general_channel.id in group_ids: continue # Already in the database
+        # Create Groupe
+        group = Group(channel_id=general_channel.id, name=guild.name) 
+        groups.append(group)
+        database.group_resource.create_group(group)
 
-            # Create Groupe
-            group = Group(channel_id=general_channel.id, name=guild.name) 
-            groups.append(group)
-            database.group_resource.create_group(group)
-
-            await bot.send_message(
-                message=GameMaster.welcome(),
-                channel_id=group.channel_id
-            )
-
-    except Exception as e:
-        await bot.send_message(f"[BOT] / New Group Creation failed **{e}**", group.channel_id)
-        print(traceback.format_exc())
-        return
+        await bot.send_message(
+            message=GameMaster.welcome(),
+            channel_id=group.channel_id
+        )
 
     # Check for each group
-    for group in groups:
+    for group in list(set(groups))  :
 
         # Log 
         print(f"[LOG] -- Parsing group {group.name}")
@@ -157,7 +151,7 @@ async def check_chats():
                 print(f'[LOG] -- Detected Vote Event')
                 try: 
                     # Detect Contributions
-                    users = database.group_resource.get_group_users(group.id)
+                    users: list[User] = database.group_resource.get_group_users(group.id)
                     pm_dict = await bot.get_users_pm(users, session.start_at) if session.incognito else {}
                     contributions: list[Contribution] = detect_contributions(messages, session, users, pm_dict)
 
@@ -174,7 +168,7 @@ async def check_chats():
                             # Close Session
                             database.session_resource.set_session_inactive(session)
                             await bot.send_message(
-                                message=GameMaster.no_contributions(participation_timeout),
+                                message=GameMaster.no_contributions(session, participation_timeout),
                                 channel_id=group.channel_id
                             )
 
@@ -206,7 +200,7 @@ async def check_chats():
                         streaks = {}
                         for contribution in contributions:
                             user: User = database.group_resource.get_user_by_id(contribution.user_id, group.id)
-                            user, streak = streak_update(user, session, database)
+                            user, streak = compute_streak(user, session)
                             streaks[user.name] = streak
                             database.group_resource.update_user(user)
 
@@ -226,6 +220,7 @@ async def check_chats():
                     print(f'[LOG] -- Detected End Event')
 
                     # Get Contributions   
+                    users: list[User] = database.group_resource.get_group_users(group.id)
                     contributions: list[Contribution] = database.session_resource.get_contributions(session.id)
                     votes, reacts, winners, points, is_banger = await count_votes(bot, session, contributions)
 
@@ -246,7 +241,7 @@ async def check_chats():
 
                     # Close Votes
                     await bot.send_message(
-                        message=GameMaster.close_votes(votes, winners),
+                        message=GameMaster.close_votes(session, users, votes, winners),
                         channel_id=group.channel_id
                     )
 
@@ -256,10 +251,12 @@ async def check_chats():
                 except Exception as e:
                     error_message += f"[BOT] / End Event failed **{e}**\n"
                     print(f"[ERR] -- End Event failed: {e}")
+                    print(traceback.format_exc())
 
             else: 
 
-                print(f'[LOG] -- No Event Detected, nothing to do')
+                if detected_event != 'Start': 
+                    print(f'[LOG] -- No Event Detected, nothing to do')
 
         
         # Error Message

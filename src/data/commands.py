@@ -56,7 +56,7 @@ COMMANDS = [
         name='GOAGAIN',
         code='!goagain',
         description='Restart the group if it was paused',
-        instructions='!info'
+        instructions='!goagain'
     ),
     Command(
         name='LIST SCHEDULES',

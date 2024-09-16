@@ -1,4 +1,4 @@
-import asyncio
+import re
 import traceback
 import json
 from typing import Optional
@@ -28,18 +28,19 @@ class CommandCenter:
         user: Optional[User] = db_access.group_resource.get_user_by_id(discord_id, self.group_id)
         success = True
 
-        # Blocking command
+        # Checking command
+        content = re.sub(r'\s+', ' ', content)
         message, block = self.block_command(command, user)
         if block: return message, False
 
         # HELP
         if command.code == '!help':
 
-            message = self.title(command, 'Available commands')
+            message = self.title(command, 'Available commands:')
             commands = '\n'.join([
-                f'```{self.padding_space(c.code, 10)}** *{c.description}*' + (f' / {c.instructions}```' if c.instructions else '') 
+                f'`{self.padding_space(c.code, 20)}`' + f' -- {c.description}' + (f' -- ***{c.instructions}***' if c.instructions else '') 
                 for c in COMMANDS])
-            message = message + commands
+            message = message + commands 
 
         # ME 
         elif command.code == '!me':
@@ -319,10 +320,14 @@ class CommandCenter:
             message = self.warning(command, f'User with discord ID [{discord_id}] already exists, renaming to [{username}]')
             success = False
 
-
         elif any([u.name == username for u in group_users]):
 
             message = self.warning(command, f'User with name [{username}] already exists')
+            success = False
+
+        elif username == '' or username is None:
+
+            message = self.warning(command, f'Invalid username')
             success = False
 
         else: 
@@ -383,7 +388,7 @@ class CommandCenter:
     def padding_space(message: str, max_space: int) -> str:
         message_length = len(message)
         padding = max_space - message_length
-        return  message + '  ' * padding
+        return  message + ' ' * padding
     
     
     @staticmethod
@@ -391,5 +396,7 @@ class CommandCenter:
         
         MAX_USERNAME_LENGTH = 30
         username = ''.join(c for c in username if c.isalnum() or c == '-')[:MAX_USERNAME_LENGTH]
+
+        return username
 
 

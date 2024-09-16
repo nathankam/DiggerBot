@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import random
+from typing import Tuple
 
 import discord
 from src.data.challenges import CHALLENGES
@@ -115,13 +116,17 @@ def detect_contributions(
 
 
 
-async def count_votes(bot: DiscordBot, session: Session, contributions: list[Contribution]):
+async def count_votes(
+        bot: DiscordBot, 
+        session: Session, 
+        contributions: list[Contribution]
+        ) -> Tuple[dict[int, int], dict[int, dict[int, str]], list[int], dict[int, int], bool]:
 
     # Session Channel ID
     channel_id = session.channel_id
     channel = bot.get_channel(channel_id)
 
-    # Initialize Votes
+    # Initialize Votes // KEYS = User Discord Id
     reacts = dict.fromkeys([c.user_id for c in contributions], 0)
     votes = dict.fromkeys([c.user_id for c in contributions], 0)
     points = dict.fromkeys([c.user_id for c in contributions], 0)
@@ -132,12 +137,13 @@ async def count_votes(bot: DiscordBot, session: Session, contributions: list[Con
         message = await channel.fetch_message(contribution.message_id)
         reactions = message.reactions
 
+        # Get User Reacts for contribution: KEY: User Id (int) / 
         user_reacts, user_emojid = {}, {}
         for reaction in reactions:
-            reaction_users = [user async for user in reaction.users()]
+            reaction_users: list[discord.User] = [user async for user in reaction.users()]
             for user in reaction_users:
                 user_reacts[user.id] = reaction.emoji
-                user_emojid[user.id] = reaction.emoji.id
+                user_emojid[user.id] = reaction.emoji
 
 
         # Translate the reacts // Exclude the user's own reaction
@@ -146,6 +152,7 @@ async def count_votes(bot: DiscordBot, session: Session, contributions: list[Con
 
         # Count the votes
         vote_count = len([r for r in user_emojid.values() if r in ['VOTE', 'COUPDECOEUR']])
+        print(f'[LOG] -- {contribution.user_id} - {vote_count} votes')
 
         votes[contribution.user_id] = vote_count
         reacts[contribution.user_id] = user_reacts
@@ -157,9 +164,9 @@ async def count_votes(bot: DiscordBot, session: Session, contributions: list[Con
     # Winner
     winners = []
     max_votes = max(votes.values())
-    for user, vote_count in votes.items(): 
+    for user_id, vote_count in votes.items(): 
         if vote_count == max_votes: 
-            winners.append(user)
+            winners.append(user_id)
         else: 
             break 
 
@@ -167,7 +174,7 @@ async def count_votes(bot: DiscordBot, session: Session, contributions: list[Con
     is_banger = len(votes) >= 3 and sum(votes.values()) - 1 == max(votes.values()) and max(votes.values()) >= 3
 
     if is_banger:
-        points[winner] = 5 
+        points[winners[0]] = 5 
 
     if len(winners) == 1:
         points[winners[0]] = 3
@@ -178,13 +185,10 @@ async def count_votes(bot: DiscordBot, session: Session, contributions: list[Con
         for w in winners: 
             points[w] = 1
 
-    for winner in winners: 
-        points[winner] = 1
-
     return votes, reacts, winners, points, is_banger
 
 
-def streak_update(user: User, session: Session, database: DatabaseAccess) -> tuple[User, int]:
+def compute_streak(user: User, session: Session) -> tuple[User, int]:
 
     # User Streak Update
     if user is None: 
@@ -201,11 +205,6 @@ def streak_update(user: User, session: Session, database: DatabaseAccess) -> tup
     user.last_participation = session.session_number
 
     return user, user.streak
-
-    streaks[user.name] = user.streak
-    database.group_resource.update_user(user)
-
-
 
 
 async def welcome_user(user: User, bot: DiscordBot, database: DatabaseAccess):
