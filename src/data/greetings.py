@@ -14,3 +14,11 @@ GREETINGS = [
     "Bonjour les copains !",
     "Bonjour les potes !",
 ]
+
+BRAVO = [
+    "Bravo!",
+    "Bien joué!",
+    "Félicitations!",
+    "Well done!",
+    "Good job!",
+]

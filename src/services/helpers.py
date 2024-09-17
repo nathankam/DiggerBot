@@ -30,7 +30,7 @@ def pick_theme(group_settings: Settings) -> Theme:
     subgenres = [s for s in SUBGENRES if s.genre == genre]
     if random.random() < group_settings.genre_subgenre_ratio:
         genre_choice = random.choice([genre, *subgenres])
-        type_choice = 'SubGenre'  if genre_choice == genre else 'Genre'
+        type_choice = 'Genre' if genre_choice == genre else 'Subgenre'
     else: 
         genre_choice, type_choice = genre, 'Genre'
 
@@ -46,7 +46,6 @@ def detect_contributions(
         messages: list[discord.Message], 
         session: Session, 
         users: list[User],
-        pm_dict = dict[int, list[discord.Message]]
     ) -> list[Contribution]:
 
     # Plateforms
@@ -65,22 +64,12 @@ def detect_contributions(
 
     # Search for plateforms / Active Users / Messages
     for plateform in plateforms:
-        matches = [m for m in messages if plateform['search_string'] in m.content]
-        matches = [m for m in matches if m.author.id in active_users]
+        matches = [m for m in messages 
+            if plateform['search_string'] in m.content and m.author.id in active_users]
+        is_pm = [m.guild is None for m in matches]
         all_matches.extend(matches) 
         pltfrm.extend([plateform['name'] for _ in range(len(matches))])
-        incog.extend([False for _ in range(len(matches))])
-
-    # Incognito Mode
-    if session.incognito:
-        for user_id, messages in pm_dict.items():
-            for plateform in plateforms: 
-                matches = [m for m in messages if plateform['search_string'] in m.content]
-                # If the message is a reply to another message than check the parent message's content
-                all_matches.extend(matches)
-                pltfrm.extend([plateform['name'] for _ in range(len(matches))])
-                incog.extend([True for _ in range(len(matches))])
-
+        incog.extend(is_pm)
 
     # Create Participation objects
     contributions: list[Contribution] = [
@@ -142,13 +131,12 @@ async def count_votes(
         for reaction in reactions:
             reaction_users: list[discord.User] = [user async for user in reaction.users()]
             for user in reaction_users:
+                emoji_code = reaction.emoji if isinstance(reaction.emoji, str) else reaction.emoji.id
                 user_reacts[user.id] = reaction.emoji
-                user_emojid[user.id] = reaction.emoji
+                user_emojid[user.id] = emoji_code
 
-
-        # Translate the reacts // Exclude the user's own reaction
-        # emoji_translation = {a.emoji: a.name for a in REACTS}
-        # react_dict_translated = {u: emoji_translation[r] for u, r in user_reacts.items() if u != contribution.user_id}
+        print('[LOG] -- User Reacts:', user_reacts)
+        print('[LOG] -- User Emoji Ids:', user_emojid)
 
         # Count the votes
         vote_count = len([r for r in user_emojid.values() if r in ['VOTE', 'COUPDECOEUR']])
@@ -161,7 +149,15 @@ async def count_votes(
     # Sort Votes 
     votes = dict(sorted(votes.items(), key=lambda item: item[1], reverse=True))
 
-    # Winner
+    # Compute Points
+    points, winners, banger = compute_points(points, votes)
+
+    return votes, reacts, winners, points, banger
+
+
+def compute_points(points: dict[int, int], votes: dict[int, int]) -> tuple[dict[int, int], list[int], bool]:
+
+    # Winners definition
     winners = []
     max_votes = max(votes.values())
     for user_id, vote_count in votes.items(): 
@@ -170,22 +166,19 @@ async def count_votes(
         else: 
             break 
 
-    # Banger 
-    is_banger = len(votes) >= 3 and sum(votes.values()) - 1 == max(votes.values()) and max(votes.values()) >= 3
+    # Banger = 3 votes, full vote, and at least 3 votes
+    is_banger = len(votes) >= 3 \
+        and len(votes) == max(votes.values()) + 1 \
+        and max(votes.values()) >= 3
 
-    if is_banger:
-        points[winners[0]] = 5 
-
+    # Points System / 
     if len(winners) == 1:
-        points[winners[0]] = 3
-    if len(winners) == 2: 
-        points[winners[0]] = 2
-        points[winners[1]] = 2
-    if len(winners) >= 3:
-        for w in winners: 
-            points[w] = 1
+        points[winners[0]] = 3 if is_banger else 2
+    elif len(winners) > 1: 
+        for w in winners: points[w] = 1
 
-    return votes, reacts, winners, points, is_banger
+    return points, winners, is_banger
+
 
 
 def compute_streak(user: User, session: Session) -> tuple[User, int]:

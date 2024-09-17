@@ -27,7 +27,7 @@ from src.services.gamemaster import GameMaster
 
 # TEST VARIABLES
 TEST = 'DATE'
-TEST_DATE_UTC = datetime.datetime(2000, 1, 1, 16, 3, 0, 0, pytz.UTC)
+TEST_DATE_UTC = datetime.datetime(2000, 1, 1, 8, 3, 0, 0, pytz.UTC)
 # -> Switch TEST_DATE_UTC to START/VOTE/END to force events or DATE to test a specific date
 # -> Synchronize the TEST_DATE with an event in the schedule (1 jour before to account for timzeone)
 
@@ -52,7 +52,7 @@ async def check_chats():
         # Guild Text Channels
         general_channel = next((channel for channel in guild.text_channels if channel.name == 'general'), None)
         if general_channel is None or general_channel.id in group_ids: 
-            print(f"[LOG] -- Skipping {guild.name}")
+            print(f"[LOG] - Skipping {guild.name}")
             continue # No General Channel / Already in the database
 
         # Create Groupe
@@ -97,23 +97,23 @@ async def check_chats():
         now_utc = datetime.datetime.now(pytz.UTC) if not TEST else TEST_DATE_UTC
         detected_event = schedule.check_events(now_utc, group.timezone)
 
-        print(f'[LOG] -- Detected Event: {detected_event}')
+        print(f'[LOG] --- Detected Event: {detected_event}')
     
         # No sesssion ongoing - Only start a session when there is no ongoing session
         if session is None and group.is_active: 
 
-            print(f'[LOG] -- No Ongoing Session')
+            print(f'[LOG] --- No Ongoing Session')
 
             if detected_event == 'Start' or TEST=='START':
 
-                print(f'[LOG] -- Detected Start Event')
+                print(f'[LOG] --- Detected Start Event')
                 try: 
                     # Get the next scheduled vents
                     scheduled_events = schedule.get_events_dates(now_utc, group.timezone)
                     if scheduled_events is None: print("Error in next events scheduling")
 
                     # Theme Choice
-                    group_settings = Settings.from_dict(json.loads(group.settings))
+                    group_settings: Settings = Settings.from_dict(json.loads(group.settings))
                     theme = pick_theme(group_settings)
 
                     # Session Making 
@@ -143,21 +143,23 @@ async def check_chats():
         # There is an ongoing session
         elif session is not None:
 
-            print(f'[LOG] -- Ongoing Session: {session}')
+            print(f'[LOG] --- Ongoing Session: {session}')
 
             # Vote Event
             if detected_event == 'Vote' or TEST=='VOTE':
 
-                print(f'[LOG] -- Detected Vote Event')
+                print(f'[LOG] --- Detected Vote Event')
                 try: 
                     # Detect Contributions
                     users: list[User] = database.group_resource.get_group_users(group.id)
-                    pm_dict = await bot.get_users_pm(users, session.start_at) if session.incognito else {}
-                    contributions: list[Contribution] = detect_contributions(messages, session, users, pm_dict)
+                    messages = await bot.get_last_messages(group.channel_id, session.start_at)
+                    # pmessages_dict = await bot.get_users_pm(users, session.start_at) if session.incognito else {}
+                    pmessages = await bot.get_pmessages(users, session.start_at) if session.incognito else []
+                    contributions: list[Contribution] = detect_contributions(messages + pmessages, session, users)
 
                     # No Contributions - Kill Bot
                     if len(contributions) == 0:
-                        print(f'[LOG] -- No Contributions Detected')
+                        print(f'[LOG] ---- No Contributions Detected')
 
                         # Participation Timeout
                         last_session_number = database.session_resource.get_last_active_session_number(group.channel_id)
@@ -167,6 +169,7 @@ async def check_chats():
 
                             # Close Session
                             database.session_resource.set_session_inactive(session)
+                            database.group_resource.streak_reset(group)
                             await bot.send_message(
                                 message=GameMaster.no_contributions(session, participation_timeout),
                                 channel_id=group.channel_id
@@ -186,10 +189,11 @@ async def check_chats():
                     # Contributions Detected
                     else:
 
-                        print(f'[LOG] -- Contributions Detected: {len(contributions)}')
+                        print(f'[LOG] ---- Contributions Detected: {len(contributions)}')
 
                         # Contributions
                         database.session_resource.create_contributions(contributions)
+                        database.group_resource.streak_reset(group)
 
                         # Show Anonymous 
                         ms = GameMaster.anonymous_contributions(contributions) if session.incognito else None
@@ -217,7 +221,7 @@ async def check_chats():
             elif detected_event=='End' or TEST=='END':
                     
                 try: 
-                    print(f'[LOG] -- Detected End Event')
+                    print(f'[LOG] --- Detected End Event')
 
                     # Get Contributions   
                     users: list[User] = database.group_resource.get_group_users(group.id)
@@ -256,7 +260,7 @@ async def check_chats():
             else: 
 
                 if detected_event != 'Start': 
-                    print(f'[LOG] -- No Event Detected, nothing to do')
+                    print(f'[LOG] --- No Event Detected, nothing to do')
 
         
         # Error Message
@@ -267,11 +271,16 @@ async def check_chats():
 @bot.event
 async def on_ready():
 
-    print(f'[BOT START] - {bot.user} has connected to Discord!')
-    await check_chats()
-    await bot.close()
-    print(f'[BOT CLOSE] - Disconnecting {bot.user} from Discord!')
-    
+    try: 
+        print(f'[BOT START] - {bot.user} has connected to Discord!')
+        await check_chats()
+    except Exception as e:
+        print(f'[BOT ERROR] - {e}')
+        print(traceback.format_exc())
+    finally: 
+        await bot.close()
+        print(f'[BOT CLOSE] - Disconnecting {bot.user} from Discord!')
+
 
 if __name__ == '__main__':
 

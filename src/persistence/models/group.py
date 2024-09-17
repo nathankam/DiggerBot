@@ -15,6 +15,7 @@ class Group(Base):
     channel_id = Column(BigInteger)
     name = Column(String(255))
     settings = Column(JSON, default={})
+    streak = Column(BigInteger, default=0)
     schedule_id = Column(BigInteger, default=1)
     timezone = Column(String(255), default='Europe/Paris')
     last_check = Column(TIMESTAMP(timezone=True), default=datetime.datetime.now(pytz.UTC))

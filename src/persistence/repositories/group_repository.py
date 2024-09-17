@@ -118,5 +118,23 @@ class GroupDbResource:
             session.commit()
             session.refresh(group)
 
+    
+    def streak_reset(self, group: Group):
+
+        with self.session() as session:
+
+            group.streak = 0 
+            session.commit()
+            session.refresh(group)
+
+
+    def streak_increment(self, group: Group):
+
+        with self.session() as session:
+
+            group.streak += 1
+            session.commit()
+            session.refresh(group)
+
 
     

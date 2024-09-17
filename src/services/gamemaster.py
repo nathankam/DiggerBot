@@ -3,7 +3,7 @@ from typing import Optional
 import pytz
 import random
 
-from src.data.greetings import GREETINGS
+from src.data.greetings import GREETINGS, BRAVO
 from src.data.reacts import REACTS
 from src.models.music import Theme
 from src.persistence.models.contribution import Contribution
@@ -60,18 +60,17 @@ class GameMaster:
         indicator = GameMaster.get_day_indicator(now, end_time)
         end_hour = end_time.strftime('%H:%M')
 
+        # Variable discourse
+        cont = f'participation a été enregistrée.' if len(contributions) == 1 else f'participations ont été enregistrées.'
+        users = f'\n'.join([f'{GameMaster.space_padding(u, 20)} - *Streak:* **{s}**' for u, s in streaks.items()])
+
         m = f'**[SESSION {session.session_number} / VOTE]**' + \
-            f'\n\nLes participations sont closes! {len(contributions)} participations ont été enregistrées.\n\n' + \
-            f'\n'.join([f'**{u}** - *Contribution Streak:* **{s}**)' for u, s in streaks.items()]) + \
+            f'\n\nLes participations sont closes! {len(contributions)} {cont}\n\n' + \
+            (users if not session.incognito else '') + \
             f'\n\nVotez avec: \n' + '\n'.join([f' {a.emoji} - *{a.meaning}*' for a in REACTS]) + \
             f'\n\nVous avez jusqu\'à {TRANSLATIONS[indicator]} {end_hour} pour voter!'
         
-        mi = f'**[SESSION {session.session_number} / VOTE]**' + \
-            f'Les participations sont closes! {len(contributions)} participations ont été enregistrées.\n\n' + \
-            f'\n\nVotez avec: \n' + '\n'.join([f' {a.emoji} - *{a.meaning}*' for a in REACTS]) + \
-            f'\n\nVous avez jusqu\'à {TRANSLATIONS[indicator]} {end_hour} pour voter!'
-        
-        return mi if session.incognito else m
+        return m
     
     
     @staticmethod
@@ -94,16 +93,21 @@ class GameMaster:
         winners_dict = {u.discord_id: u.name for u in users}
         winners_names = [winners_dict.get(w, 'unknown') for w in winners]
 
+        # Votes 
+        vote = 'vote a été enregistré.' if len(votes) == 1 else 'votes ont été enregistrés.'
+
         voters = '\n'.join([f'- **{user}**  *{vote_count} votes*' for user, vote_count in votes.items() if vote_count > 0])
-        winner_msg = f'Le gagnant d\'aujourd\'hui est: {winners_names[0]}'
+        winner_msg = f'Le gagnant d\'aujourd\'hui est: *{winners_names[0]}*'
         winners_msg = f'Les gagnants d\'aujourd\'hui sont: ' + ', '.join(winners_names)
         win_msg = winners_msg if len(winners) > 1 else winner_msg
 
         m = f'**[SESSION {session.session_number} / RESULTS]**' + \
-            f'\n\nLes votes sont clos! {len(votes)} votes ont été enregistrés.' + \
+            f'\n\nLes votes sont clos! {len(votes)} {vote}' + \
             f'\n\n{voters}' + \
             F'\n{win_msg}' + \
-            f'Félicitations! 🎉'
+            f'\n\n{random.choice(BRAVO)}'
+        
+        return m
     
 
     @staticmethod
@@ -176,7 +180,7 @@ class GameMaster:
 
         m = f'**[SESSION {session.session_number} / END]**' + \
             f'\n\nAucune participation n\'a été enregistrée. ' + \
-            f'Vous pouvez diminuer la fréquence des sessions en modifiant le schedule avec !set_schedule <schedule_id>. Listez la liste des schedules avec !list_schedules.' + \
+            f'Vous pouvez diminuer la fréquence des sessions en modifiant le schedule avec `!set_schedule <schedule_id>`. Listez la liste des schedules avec `!list_schedules`.' + \
             f"\n\n*Le bot s'arrêtera d'ici {participation_timeout} session(s) si aucune participation n'est enregistrée.*"
 
         return m
@@ -185,7 +189,15 @@ class GameMaster:
     @staticmethod
     def killing_bot() -> str:
 
-        info1 = 'Le bot s\'arrête faute de participations. 😢'
-        info2 = 'Vous pouvez redémarrer le bot avec !start.'
-        return f'{info1}\n{info2}'
+        m = f'Le bot s\'arrête faute de participations. 😢' + \
+            f'\n\nVous pouvez redémarrer le bot avec `!start`.'
+        
+        return m
+    
+
+    @staticmethod
+    def space_padding(string: str, length: int) -> str: 
+
+        return '`' + string + ' ' * (length - len(string)) + '`'
+
         

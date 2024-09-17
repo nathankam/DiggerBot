@@ -72,6 +72,26 @@ class DiscordBot(discord.Client):
             users_pm_dict[user.id] = user_dms
 
         return users_pm_dict
+    
+
+    async def get_pmessages(self, users: list[User], last_check: datetime.datetime) -> list[discord.Message]:
+
+        # Go look for user dms
+        pmessages = []
+        for user in users:
+            print(f'[LOG] --- Checking {user.name} private messages ({user.dm_channel_id})')
+
+            user_dms = await self.get_last_messages(user.dm_channel_id, last_check)
+
+            # Filter out messages that are replies to other group concerns 
+            for dm in user_dms:
+                if dm.reference:
+                    parent = await dm.channel.fetch_message(dm.reference.message_id)
+                    if user.group_id not in parent.content: user_dms.remove(dm)
+
+            pmessages.extend(user_dms)
+
+        return pmessages
 
 
     async def get_message_reactions(self, channel_id: int, message_id: int) -> Optional[list[discord.Reaction]]:

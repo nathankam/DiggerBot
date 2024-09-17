@@ -43,6 +43,10 @@ class SubGenre:
         data = asdict(self)
         data['genre'] = self.genre.to_dict()
         return data
+    
+    def from_dict(data: dict):
+        data['genre'] = Genre.from_dict(data['genre'])
+        return SubGenre(**data)
 
 
 @dataclass(frozen=True)
