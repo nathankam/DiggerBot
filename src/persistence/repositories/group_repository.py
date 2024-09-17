@@ -123,18 +123,17 @@ class GroupDbResource:
 
         with self.session() as session:
 
-            group.streak = 0 
+            updated_group = session.merge(group)
+            updated_group.streak = 0 
             session.commit()
-            session.refresh(group)
+            session.refresh(updated_group)
 
 
     def streak_increment(self, group: Group):
 
         with self.session() as session:
 
-            group.streak += 1
+            updated_group = session.merge(group)
+            updated_group.streak += 1
             session.commit()
-            session.refresh(group)
-
-
-    
+            session.refresh(updated_group)

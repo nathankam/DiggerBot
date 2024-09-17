@@ -27,7 +27,7 @@ from src.services.gamemaster import GameMaster
 
 # TEST VARIABLES
 TEST = 'DATE'
-TEST_DATE_UTC = datetime.datetime(2000, 1, 1, 8, 3, 0, 0, pytz.UTC)
+TEST_DATE_UTC = datetime.datetime(2000, 1, 1, 16, 3, 0, 0, pytz.UTC)
 # -> Switch TEST_DATE_UTC to START/VOTE/END to force events or DATE to test a specific date
 # -> Synchronize the TEST_DATE with an event in the schedule (1 jour before to account for timzeone)
 
