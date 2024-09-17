@@ -105,9 +105,10 @@ class GroupDbResource:
 
         with self.session() as session:
 
-            session.delete(user)
+            updated_user = session.merge(user)
+            updated_user.active = False
             session.commit()
-            session.refresh(user)
+            session.refresh(updated_user)
 
 
     def modify_schedule(self, group: Group, schedule_id: int):

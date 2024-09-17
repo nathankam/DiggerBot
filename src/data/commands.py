@@ -14,9 +14,21 @@ COMMANDS = [
         instructions='!me <username>'
     ),
     Command(
+        name='GET INFO',
+        code='!info',
+        description='Show group info',
+        instructions='!info'
+    ),
+    Command(
+        name='START',
+        code='!start',
+        description='Restart the group if it was paused',
+        instructions='!start'
+    ),
+    Command(
         name='ADD USER',
         code='!user_create',
-        description='Create a new user and add to the group',
+        description='Create a new user',
         instructions='!create <username> <discord_id>',
         restricted=True
     ),
@@ -47,28 +59,16 @@ COMMANDS = [
         description='List all users'
     ),
     Command(
-        name='GET INFO',
-        code='!info',
-        description='Show group info',
-        instructions='!info'
-    ),
-    Command(
-        name='GOAGAIN',
-        code='!goagain',
-        description='Restart the group if it was paused',
-        instructions='!goagain'
+        name='SET SCHEDULE',
+        code='!schedule_set',
+        description='Set the schedule for the group, takes effect next session.',
+        instructions='!schedule_set <schedule_id>',
     ),
     Command(
         name='LIST SCHEDULES',
-        code='!list_schedules',
+        code='!schedule_list',
         description='Show available options for scheduling the sessions',
-        instructions='!list_schedules'
-    ),
-    Command(
-        name='SET SCHEDULE',
-        code='!set_schedule',
-        description='Set the schedule for the group, takes effect next session.',
-        instructions='!set_schedule <schedule_id>',
+        instructions='!schedule_list'
     ),
     Command(
         name='SETTINGS',

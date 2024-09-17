@@ -204,10 +204,12 @@ async def welcome_user(user: User, bot: DiscordBot, database: DatabaseAccess):
 
     # Get Discord Member
     member: discord.User = await bot.get_user(user.discord_id)
+    print(f'[TEST-LOG] -- Welcoming {member.name} to the group!')
     
     # Register User DM Channel Id 
     dm_channel = await member.create_dm()
     user.dm_channel_id = dm_channel.id
+    print(f'[TEST-LOG] -- {member.name} DM Channel Id: {dm_channel.id}')
     database.group_resource.update_user(user)
 
     # Send Welcome Message

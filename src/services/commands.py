@@ -128,7 +128,9 @@ class CommandCenter:
             try: 
                 users: list[User] = db_access.group_resource.get_group_users(self.group_id)
                 message = self.title(command, 'Users in group')
-                users_list = '\n'.join([f'- **{u.name}** - {u.discord_id} - streak: {u.streak} - points: {u.points}' for u in users])
+                users_list = '\n'.join([
+                    f'`{self.padding_space(u.name, 20)}` - streak: {u.streak} - points: {u.points} - frozen: {u.frozen}' 
+                    for u in users if u.active])
                 message = message + users_list
             except Exception as e:
                 message = self.warning(command, f'Error listing users: *{e}*')
@@ -165,7 +167,7 @@ class CommandCenter:
                 success = False
 
         # LIST SCHEDULES
-        elif command.code == '!list_schedules':
+        elif command.code == '!schedule_list':
 
             try: 
                 message = self.title(command, 'Available schedules')
@@ -177,7 +179,7 @@ class CommandCenter:
 
         
         # SET SCHEDULE
-        elif command.code == '!set_schedule':
+        elif command.code == '!schedule_set':
 
             try: 
                 schedule_id = content.split(' ')[1]
@@ -197,7 +199,7 @@ class CommandCenter:
 
 
         # GOAGAIN
-        elif command.code == '!goagain':
+        elif command.code == '!start':
 
             try: 
                 group: Group = db_access.group_resource.get_group(self.group_id)
@@ -354,7 +356,7 @@ class CommandCenter:
                 if command.code in message.content and not message.author.bot:
                     commands.append((command, message))
 
-        print(f'[LOG] --- Found {len(commands)} commands')
+        print(f'[LOG] -- Found {len(commands)} commands')
     
         return commands
     
@@ -378,18 +380,17 @@ class CommandCenter:
         
     @staticmethod
     def title(command: Command, message: str) -> str:
-        return f'-- *{command.name}* - **{message}** --\n\n'
+        return f'**[{command.name}]** -- **{message}**\n'
     
     @staticmethod
     def warning(command: Command, message: str) -> str:
-        return f'*[{command.name}]* - {message}'
+        return f'**[{command.name}]** - *{message}*'
     
     @staticmethod   
     def padding_space(message: str, max_space: int) -> str:
         message_length = len(message)
         padding = max_space - message_length
         return  message + ' ' * padding
-    
     
     @staticmethod
     def format_username(username: str) -> str:

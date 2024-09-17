@@ -56,7 +56,6 @@ async def check_chats():
         # Guild Text Channels
         general_channel = next((channel for channel in guild.text_channels if channel.name == 'general'), None)
         if general_channel is None or general_channel.id in group_ids: 
-            print(f"[LOG] - Skipping {guild.name}")
             continue # No General Channel / Already in the database
 
         # Create Groupe
@@ -73,7 +72,7 @@ async def check_chats():
     for group in list(set(groups))  :
 
         # Log 
-        print(f"[LOG] -- Parsing group {group.name}")
+        print(f"[LOG] - [{group.name}]")
         error_message = ''
 
         # Get last messages
@@ -87,7 +86,7 @@ async def check_chats():
         for (command, msg) in commands: 
             info, success = commandCenter.execute(msg.content, msg.author.id, command, database)
             await bot.send_message(message=info, channel_id=group.channel_id)
-            if command.name in ['!user_create', '!me'] and success: await welcome_user(bot, group, msg.author.id)
+            if command.code in ['!user_create', '!me'] and success: await welcome_user(bot, group, msg.author.id)
 
         # Get session and schedule
         session: Optional[Session] = database.session_resource.get_active_session(group.channel_id)
@@ -103,11 +102,10 @@ async def check_chats():
         # No sesssion ongoing - Only start a session when there is no ongoing session
         if session is None and group.is_active: 
 
-            print(f'[LOG] --- No Ongoing Session')
+            print(f'[LOG] -- No Ongoing Session')
 
             if detected_event == 'Start' or (TEST=='START' and group.name == TEST_GROUP):
 
-                print(f'[LOG] --- Detected Start Event')
                 try: 
                     # Check if enough users
                     users: list[User] = database.group_resource.get_group_users(group.id)
@@ -153,12 +151,11 @@ async def check_chats():
         # There is an ongoing session
         elif session is not None:
 
-            print(f'[LOG] --- Ongoing Session: {session}')
+            print(f'[LOG] -- Ongoing Session: {session}')
 
             # Vote Event
             if detected_event == 'Vote' or (TEST=='VOTE' and group.name == TEST_GROUP):
 
-                print(f'[LOG] -- Detected Vote Event')
                 try: 
                     # Detect Contributions
                     users: list[User] = database.group_resource.get_group_users(group.id)
@@ -169,7 +166,7 @@ async def check_chats():
 
                     # No Contributions - Kill Bot
                     if len(contributions) == 0:
-                        print(f'[LOG] --- No Contributions Detected')
+                        print(f'[LOG] -- No Contributions Detected')
 
                         # Participation Timeout
                         last_session_number = database.session_resource.get_last_active_session_number(group.channel_id)
@@ -202,7 +199,7 @@ async def check_chats():
                     # Contributions Detected
                     else:
 
-                        print(f'[LOG] --- Contributions Detected: {len(contributions)}')
+                        print(f'[LOG] -- Contributions Detected: {len(contributions)}')
 
                         # Contributions
                         database.session_resource.create_contributions(contributions)
@@ -234,7 +231,6 @@ async def check_chats():
             elif detected_event=='End' or (TEST=='END' and group.name == TEST_GROUP):
                     
                 try: 
-                    print(f'[LOG] -- Detected End Event')
 
                     # Get Contributions   
                     users: list[User] = database.group_resource.get_group_users(group.id)

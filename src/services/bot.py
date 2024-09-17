@@ -53,7 +53,7 @@ class DiscordBot(discord.Client):
             return matching_messages
         
         except Exception as e: 
-            print(f' -> [ERR] ---  Error fetching messages: {e}')
+            print(f' -> Error fetching messages: {e}')
 
 
     async def get_users_pm(self, users: list[User], last_check: datetime.datetime) -> dict[int, list[discord.Message]]:
@@ -79,7 +79,12 @@ class DiscordBot(discord.Client):
         # Go look for user dms
         pmessages = []
         for user in users:
-            print(f'[LOG] --- Checking {user.name} private messages ({user.dm_channel_id})')
+
+            print(f'[LOG] --- Checking {user.name} dms ', end='') 
+
+            if user.dm_channel_id is None: 
+                print(f'-> dm channel not found')
+                continue
 
             user_dms = await self.get_last_messages(user.dm_channel_id, last_check)
 
@@ -90,6 +95,8 @@ class DiscordBot(discord.Client):
                     if user.group_id not in parent.content: user_dms.remove(dm)
 
             pmessages.extend(user_dms)
+
+            print(f'-> {len(user_dms)} new messages ({user.dm_channel_id})')
 
         return pmessages
 

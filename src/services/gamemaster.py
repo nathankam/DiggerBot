@@ -62,7 +62,7 @@ class GameMaster:
 
         # Variable discourse
         cont = f'participation a été enregistrée.' if len(contributions) == 1 else f'participations ont été enregistrées.'
-        users = f'\n'.join([f'{GameMaster.space_padding(u, 20)} - *Streak:* **{s}**' for u, s in streaks.items()])
+        users = f'\n'.join([f'{GameMaster.space_padding(u, 20)} - *Streak:* ***{s}***' for u, s in streaks.items()])
 
         m = f'**[SESSION {session.session_number} / VOTE]**' + \
             f'\n\nLes participations sont closes! {len(contributions)} {cont}\n\n' + \
@@ -180,7 +180,7 @@ class GameMaster:
 
         m = f'**[SESSION {session.session_number} / END]**' + \
             f'\n\nAucune participation n\'a été enregistrée. ' + \
-            f'Vous pouvez diminuer la fréquence des sessions en modifiant le schedule avec `!set_schedule <schedule_id>`. Listez la liste des schedules avec `!list_schedules`.' + \
+            f'Vous pouvez diminuer la fréquence des sessions en modifiant le schedule avec `!schedule_set <schedule_id>`. Listez la liste des schedules avec `!schedule_list`.' + \
             f"\n\n*Le bot s'arrêtera d'ici {participation_timeout} session(s) si aucune participation n'est enregistrée.*"
 
         return m
