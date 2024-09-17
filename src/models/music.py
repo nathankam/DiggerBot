@@ -27,6 +27,7 @@ class Genre:
     def to_dict(self):
         data = asdict(self)
         data['name'] = self.name.value
+        return data
 
     def from_dict(data):
         data['name'] = GenreName(data['name'])
@@ -69,11 +70,12 @@ class Theme:
         return data
     
     def from_dict(data: dict):
-        content = data['content']
-        if 'genre' in content:
-            content['genre'] = Genre.from_dict(content['genre'])
+        if data['type'] == 'Genre':
+            data['content'] = Genre.from_dict(data['content'])
+        elif data['type'] == 'SubGenre':
+            data['content'] = SubGenre.from_dict(data['content'])
         return Theme(**data)
-
+        
 
 @dataclass(frozen=True)
 class Artist:

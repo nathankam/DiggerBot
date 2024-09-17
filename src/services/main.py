@@ -28,8 +28,12 @@ from src.services.gamemaster import GameMaster
 # TEST VARIABLES
 TEST = 'DATE'
 TEST_DATE_UTC = datetime.datetime(2000, 1, 1, 16, 3, 0, 0, pytz.UTC)
+TEST_GROUP = ['DiggerBotTest']
 # -> Switch TEST_DATE_UTC to START/VOTE/END to force events or DATE to test a specific date
 # -> Synchronize the TEST_DATE with an event in the schedule (1 jour before to account for timzeone)
+
+# VARIABLES
+MIN_USERS = 1
 
 # Load credentials from .env file
 load_dotenv()
@@ -73,13 +77,9 @@ async def check_chats():
         error_message = ''
 
         # Get last messages
-        try: 
-            messages: list[discord.Message] = await bot.get_last_messages(group.channel_id, group.last_check)
-            group.last_check = datetime.datetime.now(pytz.UTC)
-            database.group_resource.update_group(group)
-        except Exception as e:
-            error_message += f"[BOT] / Message extraction failed **{e}**\n"
-            continue
+        messages: list[discord.Message] = await bot.get_last_messages(group.channel_id, group.last_check)
+        group.last_check = datetime.datetime.now(pytz.UTC)
+        database.group_resource.update_group(group)
         
         # Check for commands 
         commands = CommandCenter.check_commands(messages)
@@ -94,20 +94,30 @@ async def check_chats():
         schedule = [s for s in SCHEDULES if s.id == group.schedule_id][0]
 
         # Check the next event
-        now_utc = datetime.datetime.now(pytz.UTC) if not TEST else TEST_DATE_UTC
+        now_utc = datetime.datetime.now(pytz.UTC)
+        now_utc = TEST_DATE_UTC if TEST and TEST_GROUP == group.name else now_utc
         detected_event = schedule.check_events(now_utc, group.timezone)
 
-        print(f'[LOG] --- Detected Event: {detected_event}')
+        print(f'[LOG] -- Detected Event: {detected_event}')
     
         # No sesssion ongoing - Only start a session when there is no ongoing session
         if session is None and group.is_active: 
 
             print(f'[LOG] --- No Ongoing Session')
 
-            if detected_event == 'Start' or TEST=='START':
+            if detected_event == 'Start' or (TEST=='START' and group.name == TEST_GROUP):
 
                 print(f'[LOG] --- Detected Start Event')
                 try: 
+                    # Check if enough users
+                    users: list[User] = database.group_resource.get_group_users(group.id)
+                    if len(users) < MIN_USERS:
+                        await bot.send_message(
+                            message=GameMaster.not_enough_users(users, MIN_USERS),
+                            channel_id=group.channel_id
+                        )
+                        continue
+
                     # Get the next scheduled vents
                     scheduled_events = schedule.get_events_dates(now_utc, group.timezone)
                     if scheduled_events is None: print("Error in next events scheduling")
@@ -146,9 +156,9 @@ async def check_chats():
             print(f'[LOG] --- Ongoing Session: {session}')
 
             # Vote Event
-            if detected_event == 'Vote' or TEST=='VOTE':
+            if detected_event == 'Vote' or (TEST=='VOTE' and group.name == TEST_GROUP):
 
-                print(f'[LOG] --- Detected Vote Event')
+                print(f'[LOG] -- Detected Vote Event')
                 try: 
                     # Detect Contributions
                     users: list[User] = database.group_resource.get_group_users(group.id)
@@ -159,12 +169,13 @@ async def check_chats():
 
                     # No Contributions - Kill Bot
                     if len(contributions) == 0:
-                        print(f'[LOG] ---- No Contributions Detected')
+                        print(f'[LOG] --- No Contributions Detected')
 
                         # Participation Timeout
                         last_session_number = database.session_resource.get_last_active_session_number(group.channel_id)
                         participation_timeout = 3 - (session.session_number - last_session_number)
                         
+
                         if participation_timeout > 0:
 
                             # Close Session
@@ -186,10 +197,12 @@ async def check_chats():
                                 channel_id=group.channel_id
                             )
 
+                       
+
                     # Contributions Detected
                     else:
 
-                        print(f'[LOG] ---- Contributions Detected: {len(contributions)}')
+                        print(f'[LOG] --- Contributions Detected: {len(contributions)}')
 
                         # Contributions
                         database.session_resource.create_contributions(contributions)
@@ -218,10 +231,10 @@ async def check_chats():
                     error_message += f"[BOT] / Vote Event failed **{e}**\n"
                     
             # End Event
-            elif detected_event=='End' or TEST=='END':
+            elif detected_event=='End' or (TEST=='END' and group.name == TEST_GROUP):
                     
                 try: 
-                    print(f'[LOG] --- Detected End Event')
+                    print(f'[LOG] -- Detected End Event')
 
                     # Get Contributions   
                     users: list[User] = database.group_resource.get_group_users(group.id)
@@ -260,7 +273,7 @@ async def check_chats():
             else: 
 
                 if detected_event != 'Start': 
-                    print(f'[LOG] --- No Event Detected, nothing to do')
+                    print(f'[LOG] -- No Event Detected, nothing to do')
 
         
         # Error Message

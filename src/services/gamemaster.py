@@ -123,8 +123,8 @@ class GameMaster:
             f'\n- Comme chaque groupe est unique, vous pouvez personnaliser mes paramètres pour que je m\'adapte à vos préférences.' + \
             f'Vous pouvez par exemple changer la fréquence à laquelle je lance les sessions en selectionnant un *schedule*, ' + \
             f'ou encore changer la fréquence à laquelle chaque genre musical est proposé...' + \
-            f'\n\nPour commencer, tape **!me <username>** pour créer un profil à ton nom.' + \
-            f'\n\n* **!help** pour plus d\'infos sur comment interragir avec mes paramètres.*\n'
+            f'\n\nPour commencer, tape `!me <username>` pour créer un profil à ton nom.' + \
+            f'\n\n* `!help` pour plus d\'infos sur comment interragir avec mes paramètres.*\n'
 
         return m
     
@@ -182,6 +182,20 @@ class GameMaster:
             f'\n\nAucune participation n\'a été enregistrée. ' + \
             f'Vous pouvez diminuer la fréquence des sessions en modifiant le schedule avec `!set_schedule <schedule_id>`. Listez la liste des schedules avec `!list_schedules`.' + \
             f"\n\n*Le bot s'arrêtera d'ici {participation_timeout} session(s) si aucune participation n'est enregistrée.*"
+
+        return m
+    
+
+    @staticmethod
+    def not_enough_users(users: list[User], min_users: int) -> str: 
+
+        pp = ', '.join([u.name for u in users])
+        participants = f'(Aucun utilisateur enregistré.)' if len(users) == 0 else f'(Les participants actuels sont: {pp})'
+
+        m = f'Il n\'y a pas assez de participants pour lancer une session. ' + \
+            f'Il faut au moins {min_users} participants pour lancer une session. ' + \
+            participants + \
+            f'\n*Pour rejoindre la session: `!me <username>`.*' 
 
         return m
     
