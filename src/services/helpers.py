@@ -12,6 +12,7 @@ from src.models.settings import Settings
 
 from src.persistence.database import DatabaseAccess
 from src.persistence.models.contribution import Contribution
+from src.persistence.models.group import Group
 from src.persistence.models.session import Session
 from src.persistence.models.user import User
 from src.services.bot import DiscordBot
@@ -52,24 +53,23 @@ def detect_contributions(
     plateforms = [
         {'name': 'SPOTIFY', 'search_string': '//open.spotify.com/'},
         {'name': 'YOUTUBE', 'search_string': '//www.youtube.com/watch'},
+        {'name': 'SOUNDCLOUD', 'search_string': '//soundcloud.com/'},
     ]
 
     # Get Participations (link)
     all_matches: list[discord.Message] = []
-    pltfrm: list[str] = []
-    incog: list[bool] = []
+    _plateform: list[str] = []
+    _incognito: list[bool] = []
 
     # Active Users
     active_users = [u.discord_id for u in users if u.active and not u.frozen] 
 
     # Search for plateforms / Active Users / Messages
     for plateform in plateforms:
-        matches = [m for m in messages 
-            if plateform['search_string'] in m.content and m.author.id in active_users]
-        is_pm = [m.guild is None for m in matches]
+        matches = [m for m in messages if plateform['search_string'] in m.content and m.author.id in active_users]
         all_matches.extend(matches) 
-        pltfrm.extend([plateform['name'] for _ in range(len(matches))])
-        incog.extend(is_pm)
+        _plateform.extend([plateform['name'] for _ in range(len(matches))])
+        _incognito.extend([m.guild is None for m in matches])
 
     # Create Participation objects
     contributions: list[Contribution] = [
@@ -79,8 +79,8 @@ def detect_contributions(
             channel_id=session.channel_id,
             session_id=session.id,
             content=m.content,
-            anonymous=incog[i],
-            platform=pltfrm[i],
+            anonymous=_incognito[i],
+            platform=_plateform[i],
             timestamp=m.created_at,
         )
         for (i, m) in enumerate(all_matches)
@@ -98,10 +98,10 @@ def detect_contributions(
                 contributions_dict[user] = contribution
 
     # Convert dictionary back to list
-    participations = list(contributions_dict.values())
-    print(f'[LOG] -- Unique Contributions Detected: {len(participations)}')
+    contributions = list(contributions_dict.values())
+    print(f'[LOG] -- Unique Contributions Detected: {len(contributions)}')
 
-    return participations
+    return contributions
 
 
 
@@ -200,20 +200,20 @@ def compute_streak(user: User, session: Session) -> tuple[User, int]:
     return user, user.streak
 
 
-async def welcome_user(user: User, bot: DiscordBot, database: DatabaseAccess):
+async def welcome_user(user: User, group: Group, bot: DiscordBot, database: DatabaseAccess):
 
     # Get Discord Member
-    member: discord.User = await bot.get_user(user.discord_id)
-    print(f'[TEST-LOG] -- Welcoming {member.name} to the group!')
+    member: discord.User = bot.get_user(user.discord_id)
     
     # Register User DM Channel Id 
     dm_channel = await member.create_dm()
     user.dm_channel_id = dm_channel.id
-    print(f'[TEST-LOG] -- {member.name} DM Channel Id: {dm_channel.id}')
     database.group_resource.update_user(user)
 
+    print(f'[LOG] -- Welcoming {member.name} to the group! (DM Channel Id: {dm_channel.id})')
+
     # Send Welcome Message
-    await dm_channel.send(GameMaster.welcome_user(user.group_id, user.name))
+    await dm_channel.send(GameMaster.welcome_user(group.name, user.name))
     
 
 

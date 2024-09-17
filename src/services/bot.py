@@ -22,24 +22,35 @@ class DiscordBot(discord.Client):
         super().__init__(intents=intents)
 
 
-    async def send_message(self, message: str, channel_id: int):
+    async def send_message(self, message: str, channel_id: int) -> int:
 
         # Get Channel And Send Message
         channel = self.get_channel(channel_id)
         if channel:
-            await channel.send(message)
+            message: discord.Message = await channel.send(message)
+            return message.id
         else:
-            print("Channel not found")
+            print(f"[ERR] - Channel {channel_id} not found")
+            return None
+            
+
+    async def send_pm(self, message: str, discord_id: int):
+
+        # Get User
+        user = self.get_user(discord_id)
+        if user:
+            await user.send(message)
+        else:
+            print(f"[ERR] - User {discord_id} not found")
 
 
     async def get_last_messages(self, channel_id: int, last_check: datetime.datetime, limit=100) -> list[discord.Message]:
 
         # Get Channel
         channel = self.get_channel(channel_id)
-        if not channel:
-            return []
+        if not channel: return []
         
-        print(f'[LOG] --- Checking {channel_id} ({channel})', end='')
+        print(f'[LOG] -- Checking {channel_id} ({channel})', end='')
 
         # Filter Messages
         try: 
@@ -56,22 +67,19 @@ class DiscordBot(discord.Client):
             print(f' -> Error fetching messages: {e}')
 
 
-    async def get_users_pm(self, users: list[User], last_check: datetime.datetime) -> dict[int, list[discord.Message]]:
+    async def get_last_pmessages(self, user: User, last_check: datetime.datetime) -> list[discord.Message]:
 
-        # Go look for user dms
-        users_pm_dict = {}
-        for user in users:
-            user_dms = await self.get_last_messages(user.dm_channel_id, last_check)
+        # Fetch the user by their Discord ID
+        discord_user = await self.fetch_user(user.discord_id)
 
-            # Filter out messages that are replies to other group concerns 
-            for dm in user_dms:
-                if dm.reference:
-                    parent = await dm.channel.fetch_message(dm.reference.message_id)
-                    if user.group_id not in parent.content: user_dms.remove(dm)
+        # Create or fetch the DM channel
+        dm_channel = await discord_user.create_dm()
 
-            users_pm_dict[user.id] = user_dms
+        # Fetch the message history
+        messages = dm_channel.history(limit=100)
+        messages = [msg async for msg in messages if msg.created_at >= last_check]
 
-        return users_pm_dict
+        return messages
     
 
     async def get_pmessages(self, users: list[User], last_check: datetime.datetime) -> list[discord.Message]:
@@ -82,21 +90,16 @@ class DiscordBot(discord.Client):
 
             print(f'[LOG] --- Checking {user.name} dms ', end='') 
 
-            if user.dm_channel_id is None: 
-                print(f'-> dm channel not found')
-                continue
-
-            user_dms = await self.get_last_messages(user.dm_channel_id, last_check)
+            user_dms = await self.get_last_pmessages(user, last_check)
+            print(f'[TEST-LOG]  --> {len(user_dms)} new messages')
 
             # Filter out messages that are replies to other group concerns 
             for dm in user_dms:
                 if dm.reference:
                     parent = await dm.channel.fetch_message(dm.reference.message_id)
-                    if user.group_id not in parent.content: user_dms.remove(dm)
+                    if f'G{user.group_id}' not in parent.content: user_dms.remove(dm)
 
             pmessages.extend(user_dms)
-
-            print(f'-> {len(user_dms)} new messages ({user.dm_channel_id})')
 
         return pmessages
 

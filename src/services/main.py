@@ -27,8 +27,8 @@ from src.services.gamemaster import GameMaster
 
 # TEST VARIABLES
 TEST = 'DATE'
-TEST_DATE_UTC = datetime.datetime(2000, 1, 1, 16, 3, 0, 0, pytz.UTC)
-TEST_GROUP = ['DiggerBotTest']
+TEST_DATE_UTC = datetime.datetime(2000, 1, 1, 22, 3, 0, 0, pytz.UTC)
+TEST_GROUP = 'DiggerBotTest'
 # -> Switch TEST_DATE_UTC to START/VOTE/END to force events or DATE to test a specific date
 # -> Synchronize the TEST_DATE with an event in the schedule (1 jour before to account for timzeone)
 
@@ -72,7 +72,7 @@ async def check_chats():
     for group in list(set(groups))  :
 
         # Log 
-        print(f"[LOG] - [{group.name}]")
+        print(f"\n[GROUP] - [{group.name}]")
         error_message = ''
 
         # Get last messages
@@ -84,9 +84,10 @@ async def check_chats():
         commands = CommandCenter.check_commands(messages)
         commandCenter = CommandCenter(bot, group.id)
         for (command, msg) in commands: 
-            info, success = commandCenter.execute(msg.content, msg.author.id, command, database)
+            info, success, data = commandCenter.execute(msg.content, msg.author.id, command, database)
             await bot.send_message(message=info, channel_id=group.channel_id)
-            if command.code in ['!user_create', '!me'] and success: await welcome_user(bot, group, msg.author.id)
+            if command.code in ['!user_create', '!me'] and success: 
+                await welcome_user(data['new_user'], group, bot, database)
 
         # Get session and schedule
         session: Optional[Session] = database.session_resource.get_active_session(group.channel_id)
@@ -143,6 +144,15 @@ async def check_chats():
                         channel_id=group.channel_id
                     )
 
+                    # Send DMs if incognito session
+                    for user in users if session.incognito else []:
+                        if user.dm_channel_id is None: continue
+                        await bot.send_pm(
+                            message=GameMaster.start_dm(theme, group, session),
+                            discord_id=user.discord_id
+                        )
+
+
                 except Exception as e:
                     error_message += f"[BOT] / Start Event failed **{e}**\n"
                     print(f"[ERR] -- Session creation failed: {e}")
@@ -160,7 +170,6 @@ async def check_chats():
                     # Detect Contributions
                     users: list[User] = database.group_resource.get_group_users(group.id)
                     messages = await bot.get_last_messages(group.channel_id, session.start_at)
-                    # pmessages_dict = await bot.get_users_pm(users, session.start_at) if session.incognito else {}
                     pmessages = await bot.get_pmessages(users, session.start_at) if session.incognito else []
                     contributions: list[Contribution] = detect_contributions(messages + pmessages, session, users)
 
@@ -194,21 +203,22 @@ async def check_chats():
                                 channel_id=group.channel_id
                             )
 
-                       
-
                     # Contributions Detected
                     else:
-
                         print(f'[LOG] -- Contributions Detected: {len(contributions)}')
 
                         # Contributions
                         database.session_resource.create_contributions(contributions)
-                        database.group_resource.streak_reset(group)
+                        database.group_resource.streak_increment(group)
 
-                        # Show Anonymous 
-                        ms = GameMaster.anonymous_contributions(contributions) if session.incognito else None
-                        if ms is not None: 
-                            for m in ms: bot.send_message(message=m, channel_id=group.channel_id)
+                        # Show Anonymous / Assign them the message id 
+                        anony_contributions = [c for c in contributions if c.anonymous]
+                        ms = GameMaster.anonymous_contributions(anony_contributions) if session.incognito else None
+                        for (idx, m) in enumerate(ms) if ms is not None else []:
+                            message_id = await bot.send_message(message=m, channel_id=group.channel_id)
+                            contribution = anony_contributions[idx] 
+                            contribution.message_id = message_id
+                            database.session_resource.update_contribution(contribution)
 
                         # User Streak Update
                         streaks = {}

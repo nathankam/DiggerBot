@@ -48,16 +48,16 @@ class Settings:
         genre_proportion = f'- Genre Proportions: {genre_prop}'
 
         explanations = '**Info:**' + \
-            '\n- The incognito mode is a mode where contributions are submitted privately to the bot.' + \
-            '\n*---> !settings_incognito <0/1>*' + \
-            '\n- The genre exploration ratio determines the probability of a genre being selected over a challenge.' + \
-            '\n*---> !settings_ger <ratio>*' + \
-            '\n- The genre / subgenre ratio determines the probability of a genre being selected over a subgenre.' + \
-            '\n*---> !settings_gsr <ratio>*' + \
-            '\n- The genre proportions determine the probability of a genre being selected.' + \
-            '\n*---> !settings_gpr <genre> <weight>*' 
+            '\n- The incognito mode is a mode where contributions are submitted privately to the bot. ' + \
+            '`!settings_incognito <0/1>`' + \
+            '\n- The genre exploration ratio determines the probability of a genre being selected over a challenge. ' + \
+            '`!settings_ger <ratio>`' + \
+            '\n- The genre / subgenre ratio determines the probability of a genre being selected over a subgenre. ' + \
+            '`!settings_gsr <ratio>`' + \
+            '\n- The genre proportions determine the probability of a genre being selected. ' + \
+            '`!settings_gpr <genre> <weight>`' 
 
-        return f'{intro}\n\n{incognito}\n{challenge_ratio}\n{genre_subgenre_ratio}\n{genre_proportion}\n\n{explanations}'
+        return f'{intro}\n{incognito}\n{challenge_ratio}\n{genre_subgenre_ratio}\n{genre_proportion}\n\n{explanations}'
 
     
 

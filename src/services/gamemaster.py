@@ -38,7 +38,12 @@ class GameMaster:
         vote_hour = vote_time.strftime('%H:%M')
 
         # Theme
-        theme_name = theme.content.name.value if theme.type == 'Genre' else theme.content.name
+        if theme.type == 'Genre':
+            theme_name = f'**{theme.content.name.value}**'
+        elif theme.type == 'SubGenre':
+            theme_name = f'**{theme.content.name}** -- (Subgenre of ***{theme.content.genre.name.value}***)'
+        else:
+            theme_name = f'{theme.content.name}'
 
         # Message
         m = f'**[SESSION {session.session_number} / START]**' + \
@@ -47,6 +52,33 @@ class GameMaster:
             f'\n\nVous avez jusqu\'à **{TRANSLATIONS[indicator]} {vote_hour}** pour proposer une track!'
 
         # Session Start
+        return m
+    
+
+    @staticmethod   
+    def start_dm(theme: Theme, group: Group, session: Session) -> str:
+
+        # Prep 
+        tz = pytz.timezone(group.timezone)
+        now = session.start_at.astimezone(tz)
+        vote_time = session.vote_at.astimezone(tz)
+        indicator = GameMaster.get_day_indicator(now, vote_time)
+        vote_hour = vote_time.strftime('%H:%M')
+
+        # Theme
+        if theme.type == 'Genre':
+            theme_name = f'**{theme.content.name.value}**'
+        elif theme.type == 'SubGenre':
+            theme_name = f'**{theme.content.name}** -- (Subgenre of ***{theme.content.genre.name.value}***)'
+        else:
+            theme_name = f'{theme.content.name}'
+
+        m = f'**[SESSION {session.session_number} (***G{group.id}***) / START]**' + \
+            f'\n\nLa session est en mode incognito 🥸.' + \
+            f'\nTu peux partager ton lien ici, **en répondant à ce message** ↩, et je m\'occupe du reste!' + \
+            f'\n\nThème: {theme_name} \n*{theme.content.description}*' + \
+            f'\n\nTu as jusqu\'à **{TRANSLATIONS[indicator]} {vote_hour}** pour proposer une track!'
+        
         return m
     
         
@@ -62,26 +94,23 @@ class GameMaster:
 
         # Variable discourse
         cont = f'participation a été enregistrée.' if len(contributions) == 1 else f'participations ont été enregistrées.'
-        users = f'\n'.join([f'{GameMaster.space_padding(u, 20)} - *Streak:* ***{s}***' for u, s in streaks.items()])
+        users = f'\n\n' + f'\n'.join([f'{GameMaster.space_padding(u, 20)} - *Streak:* ***{s}***' for u, s in streaks.items()])
 
         m = f'**[SESSION {session.session_number} / VOTE]**' + \
-            f'\n\nLes participations sont closes! {len(contributions)} {cont}\n\n' + \
+            f'\n\nLes participations sont closes! {len(contributions)} {cont}' + \
             (users if not session.incognito else '') + \
             f'\n\nVotez avec: \n' + '\n'.join([f' {a.emoji} - *{a.meaning}*' for a in REACTS]) + \
             f'\n\nVous avez jusqu\'à {TRANSLATIONS[indicator]} {end_hour} pour voter!'
         
         return m
     
-    
+
     @staticmethod
-    def anonymous_contributions(contributions: list[Contribution]) -> Optional[list[str]]:
+    def anonymous_contributions(anonymous_contributions: list[Contribution]) -> Optional[list[str]]:
 
-        anonymous_contrib = [c for c in contributions if c.anonymous]
-        if len(anonymous_contrib) == 0: return None
-
-        messages = [f'Il y a eu {len(anonymous_contrib)} anonymes!']
-        for c in anonymous_contrib:
-            messages.append(f'🥸 Anonymous contribution: {c.content}')
+        messages = []
+        for c in anonymous_contributions:
+            messages.append(f'🥸 [ANONYMOUS CONTRIBUTION] -- {c.content}')
 
         return messages
     
@@ -133,7 +162,7 @@ class GameMaster:
     def welcome_user(group_name: str, user_name: str) -> str:
 
         m = f'Hello **{user_name}**!' + \
-            f'\nTu as été ajouté(e) au groupe {group_name}! Je te fais un petit rappel sur le fonctionnement du groupe: ' + \
+            f'\nTu as été ajouté(e) au groupe ***{group_name}***! Je te fais un petit rappel sur le fonctionnement du groupe: ' + \
             f'\n- A chaque session, je propose un thème et les membres du groupe sont libres de participer en partagant un lien Spotify, Youtube ou Soundcloud. ' + \
             f'A la fin du temps imparti pour les contributions, tout le monde peut réagir aux liens partagés par les autres avec des reacts qui correspondent à différent types de vote. ' + \
             f'Les musiques les plus votées rapportent des points pour encourager les plus fins explorateurs et un système de streak/badges récompense les participants les plus assidus. ' + \

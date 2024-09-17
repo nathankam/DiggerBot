@@ -1,7 +1,8 @@
+from dataclasses import replace
 import re
 import traceback
 import json
-from typing import Optional
+from typing import Any, Optional
 
 import discord
 from src.data.commands import COMMANDS
@@ -22,11 +23,11 @@ class CommandCenter:
         self.bot: DiscordBot = bot
         self.group_id: int = group_id
 
-    def execute(self, content: str, discord_id: int, command: Command, db_access: DatabaseAccess) -> tuple[str, bool]:
+    def execute(self, content: str, discord_id: int, command: Command, db_access: DatabaseAccess) -> tuple[str, bool, dict]:
 
         print(f'[LOG] --- Executing command {command.code} for group {self.group_id}')
         user: Optional[User] = db_access.group_resource.get_user_by_id(discord_id, self.group_id)
-        success = True
+        success, data = True, {}
 
         # Checking command
         content = re.sub(r'\s+', ' ', content)
@@ -49,7 +50,7 @@ class CommandCenter:
 
             try: 
                 username = self.format_username(content.split(' ')[1])
-                message, success = self.create_user(db_access, discord_id, username, command)
+                message, success, data = self.create_user(db_access, discord_id, username, command)
             except Exception as e: 
                 message = self.warning(command, f'Error creating user: *{e}*')
                 success = False
@@ -62,7 +63,7 @@ class CommandCenter:
                 # Creating New User
                 username = self.format_username(content.split(' ')[1])
                 discord_id = content.split(' ')[2]
-                message, success = self.create_user(db_access, discord_id, username, command)
+                message, success, data = self.create_user(db_access, discord_id, username, command)
             except Exception as e: 
                 message = self.warning(command, f'Error creating user: *{e}*')
                 success = False
@@ -231,10 +232,10 @@ class CommandCenter:
             try: 
                 group: Group = db_access.group_resource.get_group(self.group_id)
                 settings: Settings = Settings.from_dict(json.loads(group.settings))
-                settings.incognito = bool(int(content.split(' ')[1], 0))
-                group.settings = json.dumps(settings.to_dict())
+                new_settings = replace(settings, incognito=bool(int(content.split(' ')[1], 0)))
+                group.settings = json.dumps(new_settings.to_dict())
                 db_access.group_resource.update_group(group)
-                message = self.warning(command, f'Incognito mode set to {settings.incognito}')
+                message = self.warning(command, f'Incognito mode set to {new_settings.incognito}')
             except Exception as e:
                 message = self.warning(command, f'Error toggling incognito mode *{e}*')
                 success = False
@@ -246,10 +247,10 @@ class CommandCenter:
             try: 
                 group: Group = db_access.group_resource.get_group(self.group_id)
                 settings: Settings = Settings.from_dict(json.loads(group.settings))
-                settings.genre_explo_ratio = float(content.split(' ')[1], 0.5)
-                group.settings = json.dumps(settings.to_dict())
+                new_settings = replace(settings, genre_explo_ratio=float(content.split(' ')[1], 0.5))
+                group.settings = json.dumps(new_settings.to_dict())
                 db_access.group_resource.update_group(group)
-                message = self.warning(command, f'Genre Exploration Ratio set to {settings.genre_explo_ratio}')
+                message = self.warning(command, f'Genre Exploration Ratio set to {new_settings.genre_explo_ratio}')
             except:
                 message = self.warning(command, 'Error setting genre exploration ratio')
                 success = False
@@ -261,10 +262,10 @@ class CommandCenter:
             try: 
                 group: Group = db_access.group_resource.get_group(self.group_id)
                 settings: Settings = Settings.from_dict(json.loads(group.settings))
-                settings.genre_subgenre_ratio = float(content.split(' ')[1], 0.5)
-                group.settings = json.dumps(settings.to_dict())
+                new_settings = replace(settings, genre_subgenre_ratio=float(content.split(' ')[1], 0.5))
+                group.settings = json.dumps(new_settings.to_dict())
                 db_access.group_resource.update_group(group)
-                message = self.warning(command, f'Genre / Subgenre Ratio set to {settings.genre_subgenre_ratio}')
+                message = self.warning(command, f'Genre / Subgenre Ratio set to {new_settings.genre_subgenre_ratio}')
             except:
                 message = self.warning(command, 'Error setting genre/subgenre ratio')
                 success = False
@@ -274,12 +275,11 @@ class CommandCenter:
         elif command.code == '!settings_gpr':
 
             try: 
-                args= content.split(' ')
+                args=content.split(' ')
                 group: Group = db_access.group_resource.get_group(self.group_id)
                 settings: Settings = Settings.from_dict(json.loads(group.settings))
-                genre = GenreName(args[1])
-                weight = int(args[2])
-                settings.genre_weights[genre] = weight
+                genre, weight = GenreName(args[1]), int(args[2])
+                new_settings = replace(settings, genre_weights={**settings.genre_weights, genre: weight})
                 group.settings = json.dumps(settings.to_dict())
                 db_access.group_resource.update_group(group)
                 message = self.warning(command, f'Genre Proportion for {genre.name} set to {weight}')
@@ -302,14 +302,14 @@ class CommandCenter:
                 success = False
 
 
-        return message, success 
+        return message, success, data
     
 
     
     # Helper Function to create user
-    def create_user(self, db_access: DatabaseAccess, discord_id: int, username: str, command: Command) -> str: 
+    def create_user(self, db_access: DatabaseAccess, discord_id: int, username: str, command: Command) -> tuple[str, dict[str, Any]]: 
 
-        success = True
+        success, data = True, {}
         group_users: list[User] = db_access.group_resource.get_group_users(self.group_id)
 
         if any([u.discord_id == discord_id for u in group_users]):
@@ -342,8 +342,9 @@ class CommandCenter:
             db_access.group_resource.add_user(new_user)
 
             message = self.warning(command, f'User {new_user.name} created successfully')
+            data = {'new_user': new_user}
 
-        return message, success
+        return message, success, data
 
 
     
@@ -384,7 +385,7 @@ class CommandCenter:
     
     @staticmethod
     def warning(command: Command, message: str) -> str:
-        return f'**[{command.name}]** - *{message}*'
+        return f'**[{command.name}]** - {message}'
     
     @staticmethod   
     def padding_space(message: str, max_space: int) -> str:

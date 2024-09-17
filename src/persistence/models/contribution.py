@@ -27,6 +27,7 @@ class Contribution(Base):
         self.session_id = session_id
         self.message_id = message_id
         self.channel_id = channel_id
+        self.anonymous = anonymous
         self.content = content
         self.platform = platform
         self.timestamp = timestamp
