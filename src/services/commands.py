@@ -139,7 +139,7 @@ class CommandCenter:
 
                     message = self.title(command, f'User Info: {user.name}')
                     message = message + f'- **Current Streak**: {user.streak}' + \
-                        f'\n- **Max Streak**: {user.max_streak}' + \
+                        f'\n- **Best Streak**: {user.best_streak}' + \
                         f'\n- **Points**: {user.points}' + \
                         f'\n- **Frozen**: {user.frozen}' + \
                         f'\n- **Contributions**: {len(user_contributions)}' + \

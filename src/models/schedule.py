@@ -100,6 +100,7 @@ class Schedule:
         events = []
         for event in todays_event:
             utc_event_time = event.get_event_datetime_utc(timezone, today, now_utc)
+            print('[TEST-LOG]', event.name, now_utc, utc_event_time)
             if utc_event_time.hour == hour and utc_event_time.minute == minute:
                 events.append(event.name)
 

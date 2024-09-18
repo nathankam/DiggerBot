@@ -1,5 +1,3 @@
-import asyncio
-import datetime
 import random
 from typing import Tuple
 
@@ -193,6 +191,10 @@ def compute_streak(user: User, session: Session) -> tuple[User, int]:
     elif not user.frozen or user.last_participation != session.session_number - 1: 
         user.streak = 1
     else: pass
+
+    # Max Streak Update
+    if user.streak > user.best_streak:
+        user.best_streak = user.streak
 
     # Last Participation Update
     user.last_participation = session.session_number

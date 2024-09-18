@@ -137,6 +137,8 @@ class GroupDbResource:
 
             updated_group = session.merge(group)
             updated_group.streak += 1
+            if updated_group.streak > updated_group.best_streak:
+                updated_group.best_streak = updated_group.streak
             session.commit()
             session.refresh(updated_group)
 
