@@ -122,6 +122,36 @@ class CommandCenter:
                 message = self.warning(command, f'Error unfreezing user: *{e}*')
                 success = False
 
+        # USER INFO
+        elif command.code == '!user_info':
+
+            try: 
+                username = content.split(' ')[1]
+                user = db_access.group_resource.get_user_by_username(username, self.group_id)
+                user_contributions = db_access.session_resource.get_user_contributions(user.discord_id, self.group_id)
+
+                if user is None:
+                    message = self.warning(command, f'User [{username}] does not exist')
+                    success = False
+                else:
+                    badges = db_access.group_resource.get_user_badges(user.id)
+                    _badges = '\n'.join([f'  - {b.emoji} {b.name} - *{b.description}*' for b in badges])
+
+                    message = self.title(command, f'User Info: {user.name}')
+                    message = message + f'- **Current Streak**: {user.streak}' + \
+                        f'\n- **Max Streak**: {user.max_streak}' + \
+                        f'\n- **Points**: {user.points}' + \
+                        f'\n- **Frozen**: {user.frozen}' + \
+                        f'\n- **Contributions**: {len(user_contributions)}' + \
+                        f'\n- **Last Participation**: {user.last_participation}' + \
+                        f'\n- **Badges**:' + \
+                        (_badges if badges else '  - No badges yet')
+                    
+                        
+            except Exception as e:
+                message = self.warning(command, f'Error getting user info: *{e}*')
+                success = False 
+
 
         # USER LIST
         elif command.code == '!user_list':

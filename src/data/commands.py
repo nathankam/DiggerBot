@@ -54,6 +54,12 @@ COMMANDS = [
         restricted=True
     ),
     Command(
+        name='USER INFO',
+        code='!user_info',
+        description='Show user info',
+        instructions='!user_info <username>',
+    ),
+    Command(
         name='LIST USERS',
         code='!user_list',
         description='List all users'

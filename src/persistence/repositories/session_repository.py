@@ -84,4 +84,16 @@ class SessionDbResource:
             session.commit()
             session.refresh(updated_contribution)
 
-            
+
+    def get_user_contributions(self, discord_id: int, channel_id: int):
+
+        with self.session() as session:
+
+            return session.query(Contribution).filter(Contribution.user_id == discord_id, Contribution.channel_id == channel_id).all()
+
+
+    def get_sessions(self, session_ids: list[int]) -> list[Session]:
+
+        with self.session() as session:
+
+            return session.query(Session).filter(Session.id.in_(session_ids)).all()

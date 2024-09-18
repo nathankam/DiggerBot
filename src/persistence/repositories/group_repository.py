@@ -1,3 +1,4 @@
+from src.persistence.models.badge import UserBadge
 from src.persistence.models.group import Group
 from src.persistence.models.user import User
 
@@ -138,3 +139,27 @@ class GroupDbResource:
             updated_group.streak += 1
             session.commit()
             session.refresh(updated_group)
+
+
+    def add_user_badge(self, badge: UserBadge):
+
+        with self.session() as session:
+
+            session.add(badge)
+            session.commit()
+            session.refresh(badge)
+
+    def add_user_badges(self, badges: list[UserBadge]):
+
+        with self.session() as session:
+
+            session.add_all(badges)
+            session.commit()
+            for badge in badges:
+                session.refresh(badge)
+
+    def get_user_badges(self, user_id: int) -> list[UserBadge]:
+
+        with self.session() as session:
+
+            return session.query(UserBadge).filter(UserBadge.user_id == user_id).all()

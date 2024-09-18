@@ -99,7 +99,7 @@ def detect_contributions(
 
     # Convert dictionary back to list
     contributions = list(contributions_dict.values())
-    print(f'[LOG] -- Unique Contributions Detected: {len(contributions)}')
+    if len(contributions) > 0: print(f'[LOG] -- Unique Contributions Detected: {len(contributions)}')
 
     return contributions
 

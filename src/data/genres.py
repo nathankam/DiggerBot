@@ -46,10 +46,6 @@ GENRES = [
         description="Disco is a genre of dance music and a subculture that emerged in the 1970s from the United States' urban nightlife scene."
     ),
     Genre(
-        name=GenreName.FOLK,
-        description="Folk music includes traditional folk music and the genre that evolved from it during the 20th-century folk revival."
-    ), 
-    Genre(
         name=GenreName.ANY, 
         description="Free track! No genre restrictions on this one! Go wild :)"
     )

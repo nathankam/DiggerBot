@@ -8,6 +8,10 @@ import os, sys, asyncio
 import discord
 import pytz
 
+from src.models.badge import Badge
+from src.persistence.models.badge import UserBadge
+from src.services.badger import Badger
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.data.schedules import SCHEDULES
@@ -89,13 +93,14 @@ async def check_chats():
             if command.code in ['!user_create', '!me'] and success: 
                 await welcome_user(data['new_user'], group, bot, database)
 
+        
+        # Get current time 
+        now_utc = datetime.datetime.now(pytz.UTC)
+        now_utc = TEST_DATE_UTC if TEST and TEST_GROUP == group.name else now_utc
+
         # Get session and schedule
         session: Optional[Session] = database.session_resource.get_active_session(group.channel_id)
         schedule = [s for s in SCHEDULES if s.id == group.schedule_id][0]
-
-        # Check the next event
-        now_utc = datetime.datetime.now(pytz.UTC)
-        now_utc = TEST_DATE_UTC if TEST and TEST_GROUP == group.name else now_utc
         detected_event = schedule.check_events(now_utc, group.timezone)
 
         print(f'[LOG] -- Detected Event: {detected_event}')
@@ -152,7 +157,6 @@ async def check_chats():
                             discord_id=user.discord_id
                         )
 
-
                 except Exception as e:
                     error_message += f"[BOT] / Start Event failed **{e}**\n"
                     print(f"[ERR] -- Session creation failed: {e}")
@@ -163,6 +167,21 @@ async def check_chats():
 
             print(f'[LOG] -- Ongoing Session: {session}')
 
+            # DM Parsing if Incognito Mode
+            participation_open = session.start_at < now_utc < session.vote_at
+            if session.incognito and participation_open:
+                # Detect Anonymous Contributions
+                pmessages = await bot.get_pmessages(users, group.last_check)
+                anonymous_contributions = detect_contributions(pmessages, session, users)
+                if not anonymous_contributions: return 
+
+                # Announce Anonymous Contributions
+                ms = GameMaster.anonymous_contributions(anonymous_contributions)
+                for (idx, m) in enumerate(ms) if ms is not None else []:
+                    message_id = await bot.send_message(message=m, channel_id=group.channel_id)
+                    anonymous_contributions[idx].message_id = message_id
+                database.session_resource.create_contributions(anonymous_contributions)
+
             # Vote Event
             if detected_event == 'Vote' or (TEST=='VOTE' and group.name == TEST_GROUP):
 
@@ -170,8 +189,12 @@ async def check_chats():
                     # Detect Contributions
                     users: list[User] = database.group_resource.get_group_users(group.id)
                     messages = await bot.get_last_messages(group.channel_id, session.start_at)
-                    pmessages = await bot.get_pmessages(users, session.start_at) if session.incognito else []
-                    contributions: list[Contribution] = detect_contributions(messages + pmessages, session, users)
+                    contributions: list[Contribution] = detect_contributions(messages, session, users)
+
+                    # Anonymous Contributions
+                    if session.incognito:
+                        contributions_incognito: list[Contribution] = database.session_resource.get_contributions(session.id)
+                        contributions += contributions_incognito
 
                     # No Contributions - Kill Bot
                     if len(contributions) == 0:
@@ -181,7 +204,6 @@ async def check_chats():
                         last_session_number = database.session_resource.get_last_active_session_number(group.channel_id)
                         participation_timeout = 3 - (session.session_number - last_session_number)
                         
-
                         if participation_timeout > 0:
 
                             # Close Session
@@ -211,15 +233,6 @@ async def check_chats():
                         database.session_resource.create_contributions(contributions)
                         database.group_resource.streak_increment(group)
 
-                        # Show Anonymous / Assign them the message id 
-                        anony_contributions = [c for c in contributions if c.anonymous]
-                        ms = GameMaster.anonymous_contributions(anony_contributions) if session.incognito else None
-                        for (idx, m) in enumerate(ms) if ms is not None else []:
-                            message_id = await bot.send_message(message=m, channel_id=group.channel_id)
-                            contribution = anony_contributions[idx] 
-                            contribution.message_id = message_id
-                            database.session_resource.update_contribution(contribution)
-
                         # User Streak Update
                         streaks = {}
                         for contribution in contributions:
@@ -241,7 +254,6 @@ async def check_chats():
             elif detected_event=='End' or (TEST=='END' and group.name == TEST_GROUP):
                     
                 try: 
-
                     # Get Contributions   
                     users: list[User] = database.group_resource.get_group_users(group.id)
                     contributions: list[Contribution] = database.session_resource.get_contributions(session.id)
@@ -270,6 +282,29 @@ async def check_chats():
 
                     # Close Session 
                     database.session_resource.set_session_inactive(session)
+
+                    # Badge Update
+                    for user in users:
+                        existing_userbadges: list[UserBadge] = database.group_resource.get_user_badges(user.id, group.id)
+                        assigned_badges: list[Badge] = Badger.assign_badges(user, database)
+                        existing_userbadges = [ub.id for ub in existing_userbadges]
+                        new_userbadges = [
+                            UserBadge(
+                                badge_name=b.name,
+                                badge_metal=b.metal,
+                                description=b.description,
+                                emoji=b.emoji,
+                                user_id=user.id, 
+                                group_id=group.id,
+                                discord_id=user.discord_id
+                            )
+                            for b in assigned_badges if f'{user.id}-{b.name}-{b.metal}' not in existing_userbadges
+                        ]
+
+                        # Notice badges
+                        database.group_resource.add_user_badges(new_userbadges)
+                        for m in GameMaster.badges_assigned(user, assigned_badges):
+                            await bot.send_message(message=m, channel_id=group.channel_id)
 
                 except Exception as e:
                     error_message += f"[BOT] / End Event failed **{e}**\n"

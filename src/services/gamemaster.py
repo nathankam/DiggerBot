@@ -5,6 +5,7 @@ import random
 
 from src.data.greetings import GREETINGS, BRAVO
 from src.data.reacts import REACTS
+from src.models.badge import Badge
 from src.models.music import Theme
 from src.persistence.models.contribution import Contribution
 from src.persistence.models.group import Group
@@ -140,6 +141,18 @@ class GameMaster:
     
 
     @staticmethod
+    def badges_assigned(user: User, badges: list[Badge]) -> list[str]: 
+
+        mlist = []
+        for badge in badges: 
+            badge_name = badge.emoji +  (f'{badge.metal} ' if badge.metal else '') + badge.name 
+            m = f'**[BADGE]** - **{user.name}** won the badge ***{badge_name}***' 
+            mlist.append(m)
+
+        return mlist
+    
+
+    @staticmethod
     def welcome(): 
 
         m = f'\n**Bienvenue!** 🎶' + \
@@ -190,7 +203,8 @@ class GameMaster:
     @staticmethod
     def incognito_on() -> str: 
 
-        m = f'*Le groupe est passé en mode incognito!*' + \
+        m = f'**[INFO]** ' + \
+            f'*Le groupe est passé en mode incognito!*' + \
             f'\nÀ partir de maintenant, partage tes liens ici et je les transmettrai dans le groupe pour que ta contribution reste anonyme. 🥸\n'
 
         return m
@@ -198,7 +212,8 @@ class GameMaster:
     @staticmethod
     def incognito_off() -> str: 
 
-        m = f'*Le groupe n\'est plus en mode incognito!*' + \
+        m = f'**[INFO]** ' + \
+            f'*Le groupe n\'est plus en mode incognito!*' + \
             f'\nÀ partir de maintenant, partage tes liens directement dans le canal général. 🎶\n'
 
         return m
@@ -221,7 +236,8 @@ class GameMaster:
         pp = ', '.join([u.name for u in users])
         participants = f'(Aucun utilisateur enregistré.)' if len(users) == 0 else f'(Les participants actuels sont: {pp})'
 
-        m = f'Il n\'y a pas assez de participants pour lancer une session. ' + \
+        m = f'**[INFO]** ' + \
+            f'Il n\'y a pas assez de participants pour lancer une session. ' + \
             f'Il faut au moins {min_users} participants pour lancer une session. ' + \
             participants + \
             f'\n*Pour rejoindre la session: `!me <username>`.*' 
@@ -232,7 +248,8 @@ class GameMaster:
     @staticmethod
     def killing_bot() -> str:
 
-        m = f'Le bot s\'arrête faute de participations. 😢' + \
+        m = f'**[INFO]** ' + \
+            f'Le bot s\'arrête faute de participations. 😢' + \
             f'\n\nVous pouvez redémarrer le bot avec `!start`.'
         
         return m
