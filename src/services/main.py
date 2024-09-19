@@ -8,11 +8,11 @@ import os, sys, asyncio
 import discord
 import pytz
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from src.models.badge import Badge
 from src.persistence.models.badge import UserBadge
 from src.services.badger import Badger
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.data.schedules import SCHEDULES
 from src.models.music import Theme
@@ -285,7 +285,7 @@ async def check_chats():
 
                     # Badge Update
                     for user in users:
-                        existing_userbadges: list[UserBadge] = database.group_resource.get_user_badges(user.id, group.id)
+                        existing_userbadges: list[UserBadge] = database.group_resource.get_user_badges(user.id)
                         assigned_badges: list[Badge] = Badger.assign_badges(user, database)
                         existing_userbadges = [ub.id for ub in existing_userbadges]
                         new_userbadges = [

@@ -77,6 +77,7 @@ DEFAULT_SETTINGS = Settings(
         GenreName.HOUSE : 5,
         GenreName.TECHNO : 2,
         GenreName.DISCO : 1,
+        GenreName.WORLD : 1,
         GenreName.ANY : 1,
     }
 )

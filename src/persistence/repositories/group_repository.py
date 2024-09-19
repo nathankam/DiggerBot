@@ -160,7 +160,7 @@ class GroupDbResource:
             for badge in badges:
                 session.refresh(badge)
 
-    def get_user_badges(self, user_id: int) -> list[UserBadge]:
+    def get_user_badges(self, user_id: str) -> list[UserBadge]:
 
         with self.session() as session:
 

@@ -74,7 +74,7 @@ class GameMaster:
         else:
             theme_name = f'{theme.content.name}'
 
-        m = f'**[SESSION {session.session_number} (***G{group.id}***) / START]**' + \
+        m = f'**[SESSION {session.session_number} (G{group.id}) / START]**' + \
             f'\n\nLa session est en mode incognito 🥸.' + \
             f'\nTu peux partager ton lien ici, **en répondant à ce message** ↩, et je m\'occupe du reste!' + \
             f'\n\nThème: {theme_name} \n*{theme.content.description}*' + \
@@ -166,7 +166,7 @@ class GameMaster:
             f'Vous pouvez par exemple changer la fréquence à laquelle je lance les sessions en selectionnant un *schedule*, ' + \
             f'ou encore changer la fréquence à laquelle chaque genre musical est proposé...' + \
             f'\n\nPour commencer, tape `!me <username>` pour créer un profil à ton nom.' + \
-            f'\n\n* `!help` pour plus d\'infos sur comment interragir avec mes paramètres.*\n'
+            f'\n\n`!help` *pour plus d\'infos sur comment interragir avec mes paramètres.*\n'
 
         return m
     
