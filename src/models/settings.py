@@ -63,20 +63,21 @@ class Settings:
 
 DEFAULT_SETTINGS = Settings(
     incognito=False,
-    genre_explo_ratio=0.75,
-    genre_subgenre_ratio=0.75,
+    genre_explo_ratio=0.5,
+    genre_subgenre_ratio=0.8,
     genre_weights={
         GenreName.ROCK : 2,
         GenreName.POP : 1,
+        GenreName.FUNKSOUL: 1,
         GenreName.ELECTRONIC : 3,
         GenreName.JAZZ : 1,
-        GenreName.RAP : 1,
+        GenreName.HIPHOP : 1,
         GenreName.CLASSICAL : 1,
         GenreName.REGGAE : 1,
         GenreName.HOUSE : 5,
         GenreName.TECHNO : 2,
         GenreName.DISCO : 1,
-        GenreName.ANY : 5,
+        GenreName.ANY : 1,
     }
 )
 

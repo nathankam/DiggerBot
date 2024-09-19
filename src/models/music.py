@@ -6,15 +6,16 @@ from enum import Enum
 class GenreName(Enum):
     ROCK = "Rock"
     POP = "Pop"
-    RAP = "Rap"
+    FUNKSOUL = "Funk/Soul"
+    HIPHOP = "Hip-Hop"
     JAZZ = "Jazz"
     CLASSICAL = "Classical"
     ELECTRONIC = "Electronic"
-    REGGAE = "Reggae"
     HOUSE = "House"
     TECHNO = "Techno"
     DISCO = "Disco"
-    FOLK = "Folk"
+    REGGAE = "Reggae"
+    WORLD = "World"
     ANY = "Any"
 
 

@@ -30,7 +30,7 @@ from src.services.helpers import compute_streak, count_votes, detect_contributio
 from src.services.gamemaster import GameMaster
 
 # TEST VARIABLES
-TEST = 'DATE'
+TEST = ''
 TEST_DATE_UTC = datetime.datetime(2000, 1, 1, 22, 3, 0, 0, pytz.UTC)
 TEST_GROUP = 'DiggerBotTest'
 # -> Switch TEST_DATE_UTC to START/VOTE/END to force events or DATE to test a specific date

@@ -3,17 +3,17 @@ from src.models.message import React
 REACTS = [
     React(
         name='COUPDECOEUR',
-        emoji="❤️",
+        emoji="🌟",
         meaning="Coup de coeur"
     ),
     React(
         name="VOTE",
-        emoji="👍",
+        emoji="🪩",
         meaning="Vote"
     ),
     React(
-        name="HORSSUJET",
-        emoji="🤷",
-        meaning="Hors sujet"
+        name="FIND",
+        emoji="💣",
+        meaning="Good Find"
     )
 ]
