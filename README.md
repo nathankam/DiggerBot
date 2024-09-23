@@ -2,7 +2,7 @@
 
 **Welcome!** 🎶
 
-I'm DiggerBot, a music lover always on the lookout for new sounds! I'm a chatbot that you can add to the general channel of a Discord server, ideally with friends who enjoy music and discovering new things!
+I'm DiggerBot, a music lover always on the lookout for new tunes! I'm a chatbot you can add to a Discord server ideally with friends who enjoy music and discovering new things!
 
 ## How to Use 
 
@@ -21,7 +21,7 @@ I'm DiggerBot, a music lover always on the lookout for new sounds! I'm a chatbot
 
 ## ⚙️ Settings
 
-### 📅 Available Schedules
+### Available Schedules 📅
 
 Here is the list of available schedules for DiggerBot sessions:
 
@@ -31,10 +31,14 @@ Here is the list of available schedules for DiggerBot sessions:
 - **2-days sessions** (ID: 4) One day to participate, one day to vote.
 - **Weekly Session** (ID: 5) Theme on Monday and votes on Thursday.
 
-### 🌍 Accessibility 
+### Accessibility 🌍 
 
 - 🇫🇷 **Language**: Two languages are currently available: French and English. 
 - 🕦 **Timezon**: Change the group timezone depending on your location. The list of available timezones is available here: https://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568. Examples *Europe/Paris*, *America/New_York*
+
+### Incognito sessions 🥸
+
+By default, music links are expected to be shared in the general canal to be counted as contributions. When switching to incognito mode, the bot expects the contributions to be shared privately using the direct messages. The bot then shares the link with everyone in the general channel so that the contribution stays anonymous. 
 
 
 ## 🤖 Command Line
