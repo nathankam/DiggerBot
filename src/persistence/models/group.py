@@ -18,6 +18,7 @@ class Group(Base):
     streak = Column(BigInteger, default=0)
     best_streak = Column(BigInteger, default=0)
     schedule_id = Column(BigInteger, default=1)
+    language = Column(String(255), default='FR')
     timezone = Column(String(255), default='Europe/Paris')
     last_check = Column(TIMESTAMP(timezone=True), default=datetime.datetime.now(pytz.UTC))
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.datetime.now(pytz.UTC))

@@ -215,7 +215,7 @@ async def welcome_user(user: User, group: Group, bot: DiscordBot, database: Data
     print(f'[LOG] -- Welcoming {member.name} to the group! (DM Channel Id: {dm_channel.id})')
 
     # Send Welcome Message
-    await dm_channel.send(GameMaster.welcome_user(group.name, user.name))
+    await dm_channel.send(GameMaster.welcome_user(group.name, user.name, group.language))
     
 
 

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Literal, Optional
 import pytz
 import random
 
@@ -25,7 +25,6 @@ TRANSLATIONS = {
     'sunday': 'dimanche',
 }
 
-
 class GameMaster: 
 
     @staticmethod
@@ -48,12 +47,18 @@ class GameMaster:
 
         # Message
         m = f'**[SESSION {session.session_number} / START]**' + \
-            f'\n\n{random.choice(GREETINGS)}' + \
+            f'\n\n{random.choice(GREETINGS[group.language])}' + \
             f'\n\nLe thème d\'aujourd\'hui est: **{theme_name}** \n*{theme.content.description}*' + \
             f'\n\nVous avez jusqu\'à **{TRANSLATIONS[indicator]} {vote_hour}** pour proposer une track!'
+        
+        m_en = f'**[SESSION {session.session_number} / START]**' + \
+            f'\n\n{random.choice(GREETINGS[group.language])}' + \
+            f'\n\nToday\'s theme is: **{theme_name}** \n*{theme.content.description}*' + \
+            f'\n\nYou have until **{TRANSLATIONS[indicator]} {vote_hour}** to propose a track!'
+        
 
         # Session Start
-        return m
+        return {'FR': m, 'EN':  m_en}[group.language]
     
 
     @staticmethod   
@@ -80,21 +85,30 @@ class GameMaster:
             f'\n\nThème: {theme_name} \n*{theme.content.description}*' + \
             f'\n\nTu as jusqu\'à **{TRANSLATIONS[indicator]} {vote_hour}** pour proposer une track!'
         
-        return m
+        m_en = f'**[SESSION {session.session_number} (G{group.id}) / START]**' + \
+            f'\n\nThe session is in incognito mode 🥸.' + \
+            f'\nYou can share your link here, **by replying to this message** ↩, and I\'ll take care of the rest!' + \
+            f'\n\nTheme: {theme_name} \n*{theme.content.description}*' + \
+            f'\n\nYou have until **{TRANSLATIONS[indicator]} {vote_hour}** to propose a track!'
+        
+        return {'FR': m, 'EN':  m_en}[group.language]
     
         
     @staticmethod
-    def close_participation(session: Session, contributions: list[Contribution], streaks: dict, timezone: str) -> str: 
+    def close_participation(session: Session, contributions: list[Contribution], streaks: dict, group: Group) -> str: 
 
         # Pytz
-        tz = pytz.timezone(timezone)
+        tz = pytz.timezone(group.timezone)
         now = session.vote_at.astimezone(tz)
         end_time = session.end_at.astimezone(tz)
         indicator = GameMaster.get_day_indicator(now, end_time)
         end_hour = end_time.strftime('%H:%M')
 
-        # Variable discourse
+        # Variable
         cont = f'participation a été enregistrée.' if len(contributions) == 1 else f'participations ont été enregistrées.'
+        cont_en = f'participation has been recorded.' if len(contributions) == 1 else f'participations have been recorded.'
+
+        # Users
         users = f'\n\n' + f'\n'.join([f'{GameMaster.space_padding(u, 20)} - *Streak:* ***{s}***' for u, s in streaks.items()])
 
         m = f'**[SESSION {session.session_number} / VOTE]**' + \
@@ -103,7 +117,13 @@ class GameMaster:
             f'\n\nVotez avec: \n' + '\n'.join([f' {a.emoji} - *{a.meaning}*' for a in REACTS]) + \
             f'\n\nVous avez jusqu\'à {TRANSLATIONS[indicator]} {end_hour} pour voter!'
         
-        return m
+        m_en = f'**[SESSION {session.session_number} / VOTE]**' + \
+            f'\n\nParticipations are closed! {len(contributions)} {cont_en}' + \
+            (users if not session.incognito else '') + \
+            f'\n\nVote with: \n' + '\n'.join([f' {a.emoji} - *{a.meaning}*' for a in REACTS]) + \
+            f'\n\nYou have until {TRANSLATIONS[indicator]} {end_hour} to vote!'
+        
+        return {'FR': m, 'EN':  m_en}[group.language]
     
 
     @staticmethod
@@ -117,27 +137,46 @@ class GameMaster:
     
 
     @staticmethod
-    def close_votes(session: Session, users: list[User], votes: dict, winners: list) -> str: 
+    def close_votes(session: Session, group: Group, users: list[User], votes: dict, winners: list) -> str: 
 
         # Winners translation
         winners_dict = {u.discord_id: u.name for u in users}
         winners_names = [winners_dict.get(w, 'unknown') for w in winners]
 
+        # Voters List
+        voters = '\n'.join([f'- **{user}**  *{vote_count} votes*' for user, vote_count in votes.items() if vote_count > 0])
+
         # Votes 
         vote = 'vote a été enregistré.' if len(votes) == 1 else 'votes ont été enregistrés.'
+        vote_en = 'vote has been recorded.' if len(votes) == 1 else 'votes have been recorded.'
 
-        voters = '\n'.join([f'- **{user}**  *{vote_count} votes*' for user, vote_count in votes.items() if vote_count > 0])
-        winner_msg = f'Le gagnant d\'aujourd\'hui est: *{winners_names[0]}*'
-        winners_msg = f'Les gagnants d\'aujourd\'hui sont: ' + ', '.join(winners_names)
-        win_msg = winners_msg if len(winners) > 1 else winner_msg
+        winner_msg = {
+            'FR': f'Le gagnant d\'aujourd\'hui est: *{winners_names[0]}*',
+            'EN': f'Today\'s winner is: *{winners_names[0]}*'  
+        }
+
+        winners_msg = {
+            'FR': f'Les gagnants d\'aujourd\'hui sont: ' + ', '.join(winners_names),
+            'EN': f'Today\'s winners are: ' + ', '.join(winners_names)
+        }
+
+        l = group.language
+        win_msg = winners_msg[l] if len(winners) > 1 else winner_msg[l]
+
 
         m = f'**[SESSION {session.session_number} / RESULTS]**' + \
             f'\n\nLes votes sont clos! {len(votes)} {vote}' + \
             f'\n\n{voters}' + \
             F'\n{win_msg}' + \
-            f'\n\n{random.choice(BRAVO)}'
+            f'\n\n{random.choice(BRAVO[group.language])}'
         
-        return m
+        m_en = f'**[SESSION {session.session_number} / RESULTS]**' + \
+            f'\n\nVotes are closed! {len(votes)} {vote_en}' + \
+            f'\n\n{voters}' + \
+            f'\n{win_msg}' + \
+            f'\n\n{random.choice(BRAVO[group.language])}'
+        
+        return {'FR': m, 'EN':  m_en}[group.language]
     
 
     @staticmethod
@@ -153,7 +192,7 @@ class GameMaster:
     
 
     @staticmethod
-    def welcome(): 
+    def welcome(language: Literal['EN', 'FR']) -> str: 
 
         m = f'\n**Bienvenue!** 🎶' + \
             f'\n- Je suis DiggerBot, passioné de musique, je suis toujours à la recherche de nouveaux son! ' + \
@@ -166,13 +205,29 @@ class GameMaster:
             f'Vous pouvez par exemple changer la fréquence à laquelle je lance les sessions en selectionnant un *schedule*, ' + \
             f'ou encore changer la fréquence à laquelle chaque genre musical est proposé...' + \
             f'\n\nPour commencer, tape `!me <username>` pour créer un profil à ton nom.' + \
-            f'\n\n`!help` *pour plus d\'infos sur comment interragir avec mes paramètres.*\n'
+            f'\n\n`!help` *pour plus d\'infos sur comment interragir avec mes paramètres.*' + \
+            f'\n`!lang EN` *to switch to english.*' + \
+            f'\n\n🎷🎶🎧'
+        
+        
+        m_en = f'\n**Welcome!** 🎶' + \
+            f'\n- I am DiggerBot, music enthusiast, always looking for new tunes! ' + \
+            f'The goal of this group is to collaborate to discover new gems. ' + \
+            f'\n- At each session, I propose a theme and the members of the group are free to participate by sharing a Spotify, Youtube or Soundcloud link. ' + \
+            f'At the end of the participation time, everyone can react to the contributions of others with reacts that correspond to different types of votes. ' + \
+            f'\n- The most voted songs earn points to encourage the most fine explorers and a streak/badges system rewards the most assiduous participants.' + \
+            f'Every month, I publish statistics on the sessions, create a Spotify playlist with the best songs of the month and award the *Digger-of-the-Month* Award.' + \
+            f'\n- As each group is unique, you can customize my settings so that I adapt to your preferences.' + \
+            f'For example, you can change the sessions frequency by selecting a *schedule*, ' + \
+            f'or change the frequency at which each musical genre is proposed...' + \
+            f'\n\nTo start, type `!me <username>` to create a profile with your name.' + \
+            f'\n\n`!help` *for more info on how to interact with my settings.*\n'
 
-        return m
+        return {'FR': m, 'EN':  m_en}[language]
     
 
     @staticmethod
-    def welcome_user(group_name: str, user_name: str) -> str:
+    def welcome_user(group_name: str, user_name: str, language: Literal['EN', 'FR']) -> str:
 
         m = f'Hello **{user_name}**!' + \
             f'\nTu as été ajouté(e) au groupe ***{group_name}***! Je te fais un petit rappel sur le fonctionnement du groupe: ' + \
@@ -186,7 +241,19 @@ class GameMaster:
             f'\n- Je ne communique que dans le canal general, mais si le groupe passe en mode incognito, tu pourras partager ta contribution en privé ici et je la transmettrai dans le canal général pour qu\'elle reste anonyme' + \
             f'\n\nVoila, tu sais tout! Hate d\'écouter ce que tu vas partager! 🎷\n'
         
-        return m
+        m_en = f'Hello **{user_name}**!' + \
+            f'\nYou have been added to the group ***{group_name}***! Let me give you a little reminder on how the group works: ' + \
+            f'\n- At each session, I propose a theme and the members of the group are free to participate by sharing a Spotify, Youtube or Soundcloud link. ' + \
+            f'At the end of the time for contributions, everyone can react to the links shared by others with reacts that correspond to different types of votes. ' + \
+            f'The most voted songs earn points to encourage finest explorers and a streak/badges system rewards the most assiduous participants. ' + \
+            f'Every month, I publish statistics on the sessions, create a Spotify playlist with the best songs of the month and award the *Digger-of-the-Month Award*.' + \
+            f'\n- As each group is unique, you can customize my settings to fit your preferences. ' + \
+            f'For example, you can change the sessions frequency by selecting a *schedule*, ' + \
+            f'or change the frequency at which each musical genre is proposed...' + \
+            f'\n- I only communicate in the general channel, but if the group goes incognito, you will be able to share your contribution privately here and I will transmit it in the general channel to keep it anonymous' + \
+            f'\n\nThere you go, you know everything! Can\'t wait to listen to what you\'ll share! 🎷\n'
+            
+        return {'FR': m, 'EN':  m_en}[language]
     
 
     @staticmethod
@@ -201,58 +268,82 @@ class GameMaster:
 
     
     @staticmethod
-    def incognito_on() -> str: 
+    def incognito_on(language: Literal['FR', 'EN']) -> str: 
 
         m = f'**[INFO]** ' + \
             f'*Le groupe est passé en mode incognito!*' + \
             f'\nÀ partir de maintenant, partage tes liens ici et je les transmettrai dans le groupe pour que ta contribution reste anonyme. 🥸\n'
+        
+        m_en = f'**[INFO]** ' + \
+            f'*The group is now in incognito mode!*' + \
+            f'\nFrom now on, share your links here and I will transmit them in the group so that your contribution remains anonymous. 🥸\n'
 
-        return m
+        return {'FR': m, 'EN':  m_en}[language]
 
     @staticmethod
-    def incognito_off() -> str: 
+    def incognito_off(language: Literal['FR', 'EN']) -> str: 
 
         m = f'**[INFO]** ' + \
             f'*Le groupe n\'est plus en mode incognito!*' + \
             f'\nÀ partir de maintenant, partage tes liens directement dans le canal général. 🎶\n'
+        
+        m_en = f'**[INFO]** ' + \
+            f'*The group is no longer in incognito mode!*' + \
+            f'\nFrom now on, share your links directly in the general channel. 🎶\n'
 
-        return m
+        return {'FR': m, 'EN':  m_en}[language]
 
     
     @staticmethod
-    def no_contributions(session: Session, participation_timeout) -> str: 
+    def no_contributions(session: Session, group: Group, participation_timeout: int) -> str: 
 
         m = f'**[SESSION {session.session_number} / END]**' + \
             f'\n\nAucune participation n\'a été enregistrée. ' + \
             f'Vous pouvez diminuer la fréquence des sessions en modifiant le schedule avec `!schedule_set <schedule_id>`. Listez la liste des schedules avec `!schedule_list`.' + \
             f"\n\n*Le bot s'arrêtera d'ici {participation_timeout} session(s) si aucune participation n'est enregistrée.*"
+        
+        m_en = f'**[SESSION {session.session_number} / END]**' + \
+            f'\n\nNo contributions were recorded. ' + \
+            f'You can decrease the frequency of the sessions by modifying the schedule with `!schedule_set <schedule_id>`. List the schedules with `!schedule_list`.' + \
+            f"\n\n*The bot will stop in {participation_timeout} session(s) if no contributions are recorded.*"
 
-        return m
+        return {'FR': m, 'EN':  m_en}[group.language]
     
 
     @staticmethod
-    def not_enough_users(users: list[User], min_users: int) -> str: 
+    def not_enough_users(users: list[User], group: Group, min_users: int) -> str: 
 
         pp = ', '.join([u.name for u in users])
         participants = f'(Aucun utilisateur enregistré.)' if len(users) == 0 else f'(Les participants actuels sont: {pp})'
+        participants_en = f'(No registered users.)' if len(users) == 0 else f'(Current participants are: {pp})'
 
         m = f'**[INFO]** ' + \
             f'Il n\'y a pas assez de participants pour lancer une session. ' + \
             f'Il faut au moins {min_users} participants pour lancer une session. ' + \
             participants + \
             f'\n*Pour rejoindre la session: `!me <username>`.*' 
+        
+        m_en = f'**[INFO]** ' + \
+            f'There are not enough participants to start a session. ' + \
+            f'You need at least {min_users} participants to start a session. ' + \
+            participants_en + \
+            f'\n*To join the session: `!me <username>`.*'
 
-        return m
+        return {'FR': m, 'EN':  m_en}[group.language]
     
 
     @staticmethod
-    def killing_bot() -> str:
+    def killing_bot(language: Literal['EN', 'FR']) -> str:
 
         m = f'**[INFO]** ' + \
             f'Le bot s\'arrête faute de participations. 😢' + \
             f'\n\nVous pouvez redémarrer le bot avec `!start`.'
         
-        return m
+        m_en = f'**[INFO]** ' + \
+            f'The bot is stopping due to lack of participation. 😢' + \
+            f'\n\nYou can restart the bot with `!start`.'
+        
+        return {'FR': m, 'EN':  m_en}[language]
     
 
     @staticmethod

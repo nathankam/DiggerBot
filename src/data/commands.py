@@ -8,6 +8,18 @@ COMMANDS = [
         description='List all available commands'
     ),
     Command(
+        name='LANGUAGE',
+        code='!lang',
+        description='Available languages: French (FR) / English (EN)',
+        instructions='!lang <FR/EN>'
+    ),
+    Command(
+        name='TIMEZONE',
+        code='!tz',
+        description='Available timezones: *Europe/Paris*, *America/New_York*, *Asia/Tokyo*, *etc*. Google *PyTz timezones* for the complete list.',
+        instructions='!tz <timezone>'
+    ),
+    Command(
         name='ME',
         code='!me',
         description='Add yourself to the users',

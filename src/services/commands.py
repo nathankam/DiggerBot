@@ -5,6 +5,7 @@ import json
 from typing import Any, Optional
 
 import discord
+import pytz
 from src.data.commands import COMMANDS
 from src.data.schedules import SCHEDULES
 from src.models.message import Command
@@ -42,6 +43,40 @@ class CommandCenter:
                 f'`{self.padding_space(c.code, 20)}`' + f' -- {c.description}' + (f' -- ***{c.instructions}***' if c.instructions else '') 
                 for c in COMMANDS])
             message = message + commands 
+
+        # LANGUAGE
+        elif command.code == '!lang':
+
+            try:
+                language = content.split(' ')[1]
+                if language not in ['FR', 'EN']:
+                    message = self.warning(command, 'Invalid language, available languages: FR / EN')
+                    success = False
+                else: 
+                    group: Group = db_access.group_resource.get_group(self.group_id)
+                    group.language = language
+                    db_access.group_resource.update_group(group)
+                    message = self.warning(command, f'Language set to {language}')
+            except Exception as e: 
+                message = self.warning(command, f'Error setting language *{e}*')
+                success = False
+
+        # TIMEZONE
+        elif command.code == '!tz':
+
+            try:
+                timezone = content.split(' ')[1]
+                if timezone not in pytz.all_timezones:
+                    message = self.warning(command, 'Invalid <timezone> argument.')
+                    success = False
+                else:              
+                    group: Group = db_access.group_resource.get_group(self.group_id)
+                    group.timezone = timezone
+                    db_access.group_resource.update_group(group)
+                    message = self.warning(command, f'Timezone set to {timezone}')
+            except Exception as e: 
+                message = self.warning(command, f'Error setting timezone *{e}*')
+                success = False
 
         # ME 
         elif command.code == '!me':
@@ -333,7 +368,6 @@ class CommandCenter:
 
 
         return message, success, data
-    
 
     
     # Helper Function to create user

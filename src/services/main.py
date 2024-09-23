@@ -68,7 +68,7 @@ async def check_chats():
         database.group_resource.create_group(group)
 
         await bot.send_message(
-            message=GameMaster.welcome(),
+            message=GameMaster.welcome(group.language),
             channel_id=group.channel_id
         )
 
@@ -117,7 +117,7 @@ async def check_chats():
                     users: list[User] = database.group_resource.get_group_users(group.id)
                     if len(users) < MIN_USERS:
                         await bot.send_message(
-                            message=GameMaster.not_enough_users(users, MIN_USERS),
+                            message=GameMaster.not_enough_users(users, group, MIN_USERS),
                             channel_id=group.channel_id
                         )
                         continue
@@ -210,7 +210,7 @@ async def check_chats():
                             database.session_resource.set_session_inactive(session)
                             database.group_resource.streak_reset(group)
                             await bot.send_message(
-                                message=GameMaster.no_contributions(session, participation_timeout),
+                                message=GameMaster.no_contributions(session, group, participation_timeout),
                                 channel_id=group.channel_id
                             )
 
@@ -221,7 +221,7 @@ async def check_chats():
                             database.session_resource.set_session_inactive(session)
                             database.group_resource.update_group(group)
                             await bot.send_message(
-                                message=GameMaster.killing_bot(),
+                                message=GameMaster.killing_bot(group.language),
                                 channel_id=group.channel_id
                             )
 
@@ -243,7 +243,7 @@ async def check_chats():
 
                         # Close Participation
                         await bot.send_message(
-                            message=GameMaster.close_participation(session, contributions, streaks, group.timezone),
+                            message=GameMaster.close_participation(session, contributions, streaks, group),
                             channel_id=group.channel_id
                         )
 
@@ -276,7 +276,7 @@ async def check_chats():
 
                     # Close Votes
                     await bot.send_message(
-                        message=GameMaster.close_votes(session, users, votes, winners),
+                        message=GameMaster.close_votes(session, group, users, votes, winners),
                         channel_id=group.channel_id
                     )
 
