@@ -23,11 +23,11 @@ class Event:
         today = now_tz.strftime("%A").lower()
 
         # Event TIME
-        event_hour_tz = datetime.datetime.strptime(self.time, "%H:%M")
+        event_hour = datetime.datetime.strptime(self.time, "%H:%M")
 
         # If the event is today 
         if event_day == today:
-            event_time_tz = datetime.datetime.combine(now_tz.date(), event_hour_tz.time()).replace(tzinfo=tz)
+            event_time_tz = now_tz.replace(hour=event_hour.hour, minute=event_hour.minute, second=0, microsecond=0)
             return event_time_tz.astimezone(pytz.utc)
         
         # if the event is some day within the rest of the week 
@@ -35,7 +35,7 @@ class Event:
                      datetime.datetime.strptime(today, "%A").weekday())
         
         date_event = now_tz.date() + datetime.timedelta(days=delta_day)
-        event_time = datetime.datetime.combine(date_event, event_hour_tz.time()).replace(tzinfo=tz)
+        event_time = date_event.replace(hour=event_hour.hour, minute=event_hour.minute, second=0, microsecond=0)
 
         return event_time.astimezone(pytz.utc)
     
