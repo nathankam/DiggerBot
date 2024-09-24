@@ -194,16 +194,6 @@ SUBGENRES = [
         description="Electro house is a genre of electronic dance music characterized by heavy bass and a tempo around 130 beats per minute."
     ),
     SubGenre(
-        name="Future House",
-        genre=GENRE_DICT[GenreName.HOUSE],
-        description="Future house is a house music genre that emerged in the 2010s, described as a fusion between deep house, UK garage, and incorporating other elements."
-    ),
-    SubGenre(
-        name="Amapiano",
-        genre=GENRE_DICT[GenreName.HOUSE],
-        description="Amapiano is a style of house music that emerged in South Africa in 2012. Amapiano is a hybrid of deep house, jazz, and lounge music characterized by synths, airy pads, and wide basslines."
-    ),
-    SubGenre(
         name="French House",
         genre=GENRE_DICT[GenreName.HOUSE],
         description="A late 1990s house sound developed in France. Inspired by the '70s and '80s funk and disco sounds. Mostly features a typical sound 'filter' effect and lower bpm."
@@ -213,11 +203,7 @@ SUBGENRES = [
         genre=GENRE_DICT[GenreName.HOUSE],
         description="Acid house is a subgenre of house music developed around the mid-1980s by DJs from Chicago. Characterized by the 'squelching' sounds of the Roland TB-303 electronic synthesizer-sequencer."
     ),
-    SubGenre(
-        name="Tribal House",
-        genre=GENRE_DICT[GenreName.HOUSE],
-        description="Tribal house is a subgenre of house music which combines traditional house music with world music. Characterized by its heavy use of percussion."
-    ),
+
 
 
     SubGenre(
@@ -270,11 +256,6 @@ SUBGENRES = [
         genre=GENRE_DICT[GenreName.WORLD],
         description="Afrobeat is a music genre that involves the combination of elements of West African musical styles such as fuji music and highlife with American funk and jazz influences, with a focus on chanted vocals, complex intersecting rhythms, and percussion.",
     ),
-    SubGenre(
-        name="Klezmer",
-        genre=GENRE_DICT[GenreName.WORLD],
-        description="Klezmer is a musical tradition of the Ashkenazi Jews of Eastern Europe. Played by professional musicians called klezmorim, the genre originally consisted largely of dance tunes and instrumental display pieces for weddings and other celebrations.",
-    ), 
     SubGenre(
         name="French Variety",
         genre=GENRE_DICT[GenreName.WORLD],

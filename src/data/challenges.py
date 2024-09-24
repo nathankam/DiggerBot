@@ -14,6 +14,26 @@ CHALLENGES = [
         description="A song you discovered in a movie or series."
     ),
     Challenge(
+        name="Robotic Beats",
+        description="A song with robotic beats",
+    ),
+    Challenge(
+        name="Epic Intro",
+        description="A song with an epic intro."
+    ),
+    Challenge(
+        name="Ambient Sounds",
+        description="A song with ambient sounds."
+    ),
+    Challenge(
+        name="Energetic",
+        description="A song that makes you feel energetic."
+    ),
+    Challenge(
+        name="Chill Vibes",
+        description="A song that gives you chill vibes."
+    ),
+    Challenge(
         name="First Time",
         description="A song you wish you could hear for the first time again."
     ),
@@ -110,10 +130,6 @@ CHALLENGES = [
         description="A song you think is underrated."
     ),
     Challenge(
-        name="Generation Defining",
-        description="A song you think defines a generation."
-    ),
-    Challenge(
         name="Piano Riff",
         description="A song with a great piano riff."
     ),
@@ -132,5 +148,13 @@ CHALLENGES = [
     Challenge(
         name="Groove",
         description="A song with a groove that you can’t resist."
-    )
+    ),
+    Challenge(
+        name="Main Character",
+        description="A song that makes you feel like the main character."
+    ),
+    Challenge(
+        name="Synthe Sounds",
+        description="A song that makes great use of synthe sounds."
+    ),
 ]
