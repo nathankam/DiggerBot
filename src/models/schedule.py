@@ -18,23 +18,24 @@ class Event:
     ) -> datetime.datetime:
             
         # Give 'NOW' to the function
-        tz = pytz.timezone(event_timezone)
-        now_tz = now_utc.astimezone(tz)
+        tz = pytz.timezone(event_timezone) 
+        now_tz = now_utc.astimezone(tz)  #8h -> 9h
         today = now_tz.strftime("%A").lower()
+
+        # Event TIME
+        event_hour_tz = datetime.datetime.strptime(self.time, "%H:%M")
 
         # If the event is today 
         if event_day == today:
-            event_time = datetime.datetime.strptime(self.time, "%H:%M")
-            event_time = datetime.datetime.combine(now_tz.date(), event_time.time())
-            return event_time.astimezone(pytz.utc)
+            event_time_tz = datetime.datetime.combine(now_tz.date(), event_hour_tz.time()).replace(tzinfo=tz)
+            return event_time_tz.astimezone(pytz.utc)
         
         # if the event is some day within the rest of the week 
-        delta_day = datetime.datetime.strptime(event_day, "%A").weekday() - datetime.datetime.strptime(today, "%A").weekday()
+        delta_day = (datetime.datetime.strptime(event_day, "%A").weekday() - 
+                     datetime.datetime.strptime(today, "%A").weekday())
+        
         date_event = now_tz.date() + datetime.timedelta(days=delta_day)
-
-        # We create the event 
-        event_time = datetime.datetime.strptime(self.time, "%H:%M")
-        event_time = datetime.datetime.combine(date_event, event_time.time())
+        event_time = datetime.datetime.combine(date_event, event_hour_tz.time()).replace(tzinfo=tz)
 
         return event_time.astimezone(pytz.utc)
     

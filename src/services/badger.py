@@ -49,15 +49,17 @@ class Badger:
                 count = {'Bronze': 10, 'Silver': 25, 'Gold': 50, 'Platinum': 100}.get(badge.metal)
                 if len(contributions) >= count: awarded_badges.append(badge)
             
-            elif badge.name == 'Eclectic' and badge.metal in ['Bronze', 'Silver']:
-                count = {'Bronze': 5, 'Silver': 10}.get(badge.metal)
-                if len([g for g in genre_count if genre_count[g] > 0]) >= count: awarded_badges.append(badge)
+            elif badge.name == 'Eclectic':
 
-            elif badge.name == 'Eclectic' and badge.metal in ['Gold', 'Platinum']:
-                count = {'Gold': 15, 'Platinum': 20}.get(badge.metal)
-                if len([sg for sg in subgenre_count if subgenre_count[sg] > 0]) >= count: awarded_badges.append(badge)
+                if badge.metal in ['Bronze', 'Silver']:
+                    count = {'Bronze': 5, 'Silver': 10}.get(badge.metal)
+                    if len([g for g in genre_count if genre_count[g] > 0]) >= count: awarded_badges.append(badge)
+
+                elif badge.metal in ['Gold', 'Platinum']:
+                    count = {'Gold': 15, 'Platinum': 20}.get(badge.metal)
+                    if len([sg for sg in subgenre_count if subgenre_count[sg] > 0]) >= count: awarded_badges.append(badge)
             
-            elif badge.name in ['House Specialist', 'Techno Specialist', 'Disco Specialist', 'Electronic Specialist', 'Reggae Specialist', 'Rock Specialist']:
+            elif 'Specialist' in badge.name: 
 
                 badge_to_genre = {
                     'House Specialist': GenreName.HOUSE,

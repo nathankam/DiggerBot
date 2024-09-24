@@ -205,7 +205,7 @@ async def check_chats():
                         participation_timeout = 3 - (session.session_number - last_session_number)
                         
                         if participation_timeout > 0:
-
+                            
                             # Close Session
                             database.session_resource.set_session_inactive(session)
                             database.group_resource.streak_reset(group)
@@ -215,8 +215,7 @@ async def check_chats():
                             )
 
                         else:
-
-                            # Close Session - Kill Bot 
+                            # Close Session + Kill Bot 
                             group.is_active = False    
                             database.session_resource.set_session_inactive(session)
                             database.group_resource.update_group(group)

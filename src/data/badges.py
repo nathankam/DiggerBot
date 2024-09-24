@@ -107,7 +107,7 @@ BADGES = [
     ),
     Badge(
         name='Eclectic',
-        metal='Gold',
+        metal='Platinum',
         description='You shared music in 30 different subgenres!',
         emoji='🎨',
     ),

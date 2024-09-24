@@ -34,7 +34,7 @@ Here is the list of available schedules for DiggerBot sessions:
 ### Accessibility 🌍 
 
 - 🇫🇷 **Language**: Two languages are currently available: French and English. 
-- 🕦 **Timezon**: Change the group timezone depending on your location. The list of available timezones is available here: https://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568. Examples *Europe/Paris*, *America/New_York*
+- 🕦 **Timezone**: Change the group timezone depending on your location. The list of available timezones is available here: https://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568. Examples *Europe/Paris*, *America/New_York*
 
 ### Incognito sessions 🥸
 

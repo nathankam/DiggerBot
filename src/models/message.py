@@ -22,6 +22,7 @@ class React:
     name: str
     emoji: str
     meaning: str
+    points: Optional[int] = None
 
 
 

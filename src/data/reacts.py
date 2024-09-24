@@ -4,16 +4,19 @@ REACTS = [
     React(
         name='COUPDECOEUR',
         emoji="🌟",
-        meaning="Coup de coeur"
+        meaning="Coup de coeur",
+        points=300,
     ),
     React(
         name="VOTE",
         emoji="🪩",
-        meaning="Vote"
+        meaning="Vote",
+        points=200,
     ),
     React(
         name="FIND",
         emoji="💣",
-        meaning="Good Find"
+        meaning="Good Find",
+        points=100,
     )
 ]
