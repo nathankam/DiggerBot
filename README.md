@@ -50,7 +50,8 @@ I don't rely on artificial intelligence; I respond to a set of commands that all
 | `!help`           | Lists all available commands                     | `!help`                             |
 | `!me`             | Adds yourself to the user list                   | `!me <username>`                    |
 | `!info`           | Displays group information                       | `!info`                             |
-| `!start`          | Restarts the group if it was paused              | `!start`                            |
+| `!start`          | Activate the sessions                            | `!start`                            |
+| `!pause`          | Deactivate the sessions                          | `!pause`                            |
 | `!lang`           | Available languages: French (FR) / English (EN)  | `!lang <FR/EN>`                     |
 | `!tz`             | Available timezones: *Europe/Paris*, *America/New_York*, *Asia/Tokyo*, *etc* | `!tz <timezone>`   |
 | `!user_create`    | Creates a new user                               | `!create <username> <discord_id>`   |

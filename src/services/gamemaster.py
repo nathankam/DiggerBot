@@ -104,23 +104,26 @@ class GameMaster:
         indicator = GameMaster.get_day_indicator(now, end_time)
         end_hour = end_time.strftime('%H:%M')
 
-        # Variable
-        cont = f'participation a été enregistrée.' if len(contributions) == 1 else f'participations ont été enregistrées.'
-        cont_en = f'participation has been recorded.' if len(contributions) == 1 else f'participations have been recorded.'
-
         # Users
         users = f'\n\n' + f'\n'.join([f'{GameMaster.space_padding(u, 20)} - *Streak:* ***{s}***' for u, s in streaks.items()])
+
+        cont = {
+            'FR': f'participation a été enregistrée.' if len(contributions) == 1 else f'participations ont été enregistrées.',
+            'EN': f'participation has been recorded.' if len(contributions) == 1 else f'participations have been recorded.'
+        }[group.language]
 
         m_fr = f'**[SESSION {session.session_number} / VOTE]**' + \
             f'\n\nLes participations sont closes! {len(contributions)} {cont}' + \
             (users if not session.incognito else '') + \
-            f'\n\nVotez avec: \n' + '\n'.join([f' {a.emoji} - *{a.meaning}*' for a in REACTS]) + \
+            f'\n\nToutes les reacts comptent comme un vote! Vous pouvez aussui utilisez des votes spécifiques: \n' + \
+            f'\n'.join([f' {a.emoji} - *{a.meaning}*' for a in REACTS]) + \
             f'\n\nVous avez jusqu\'à {TRANSLATIONS[indicator]} {end_hour} pour voter!'
         
         m_en = f'**[SESSION {session.session_number} / VOTE]**' + \
-            f'\n\nParticipations are closed! {len(contributions)} {cont_en}' + \
+            f'\n\nParticipations are closed! {len(contributions)} {cont}' + \
             (users if not session.incognito else '') + \
-            f'\n\nVote with: \n' + '\n'.join([f' {a.emoji} - *{a.meaning}*' for a in REACTS]) + \
+            f'\n\nAll emoji react count as a vote! You can also use special reacts: \n' + \
+            f'\n'.join([f' {a.emoji} - *{a.meaning}*' for a in REACTS]) + \
             f'\n\nYou have until {TRANSLATIONS[indicator]} {end_hour} to vote!'
         
         return {'FR': m_fr, 'EN':  m_en}[group.language]
@@ -147,11 +150,8 @@ class GameMaster:
         voters = '\n'.join([f'- **{user}**  *{vote_count} votes*' for user, vote_count in votes.items() if vote_count > 0])
 
         vote_msg = {
-            'FR': 'vote a été enregistré.',
-            'EN': 'vote has been recorded.'
-        }[group.language] if len(votes) == 1 else {
-            'FR': 'votes ont été enregistrés.',
-            'EN': 'votes have been recorded.'
+            'FR': 'vote a été enregistré.' if len(votes) == 1 else 'votes ont été enregistrés.',
+            'EN': 'vote has been recorded.' if len(votes) == 1 else 'votes have been recorded.',
         }[group.language]
 
         win_msg = {

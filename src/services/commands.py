@@ -264,16 +264,28 @@ class CommandCenter:
                 success = False
 
 
-        # GOAGAIN
+        # START
         elif command.code == '!start':
 
             try: 
                 group: Group = db_access.group_resource.get_group(self.group_id)
                 group.is_active = True
                 db_access.group_resource.update_group(group)
-                message = self.warning(command, 'Group is reactivated')
+                message = self.warning(command, 'The group is reactivated, sessions are active.')
             except Exception as e:
                 message = self.warning(command, f'Error reactivating group *{e}*')
+                success = False
+
+        # PAUSE
+        elif command.code == '!pause':
+
+            try: 
+                group: Group = db_access.group_resource.get_group(self.group_id)
+                group.is_active = False
+                db_access.group_resource.update_group(group)
+                message = self.warning(command, 'The group is paused, sessions are inactive.')
+            except Exception as e:
+                message = self.warning(command, f'Error pausing group *{e}*')
                 success = False
 
 

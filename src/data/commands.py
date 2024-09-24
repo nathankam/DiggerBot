@@ -34,8 +34,14 @@ COMMANDS = [
     Command(
         name='START',
         code='!start',
-        description='Restart the group if it was paused',
+        description='Reactivate the sessions',
         instructions='!start'
+    ),
+    Command(
+        name='PAUSE',
+        code='!pause',
+        description='Deactivate the sessions',
+        instructions='!pause'
     ),
     Command(
         name='ADD USER',
