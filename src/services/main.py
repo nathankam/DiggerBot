@@ -8,6 +8,8 @@ import os, sys, asyncio
 import discord
 import pytz
 
+from src.services.recommander import Recommander
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.models.badge import Badge
@@ -26,8 +28,11 @@ from src.persistence.models.user import User
 
 from src.services.commands import CommandCenter
 from src.services.bot import DiscordBot
-from src.services.helpers import compute_streak, count_votes, detect_contributions, pick_theme, welcome_user
 from src.services.gamemaster import GameMaster
+from src.services.helpers import (
+    badge_update, compute_streak, detect_contributions, extract_link, 
+    kill_session, pick_theme, vote_analysis, welcome_user
+)
 
 # TEST VARIABLES
 TEST = ''
@@ -93,7 +98,6 @@ async def check_chats():
             if command.code in ['!user_create', '!me'] and success: 
                 await welcome_user(data['new_user'], group, bot, database)
 
-        
         # Get current time 
         now_utc = datetime.datetime.now(pytz.UTC)
         now_utc = TEST_DATE_UTC if TEST and TEST_GROUP == group.name else now_utc
@@ -198,31 +202,9 @@ async def check_chats():
 
                     # No Contributions - Kill Bot
                     if len(contributions) == 0:
+
                         print(f'[LOG] -- No Contributions Detected')
-
-                        # Participation Timeout
-                        last_session_number = database.session_resource.get_last_active_session_number(group.channel_id)
-                        participation_timeout = 3 - (session.session_number - last_session_number)
-                        
-                        if participation_timeout > 0:
-                            
-                            # Close Session
-                            database.session_resource.set_session_inactive(session)
-                            database.group_resource.streak_reset(group)
-                            await bot.send_message(
-                                message=GameMaster.no_contributions(session, group, participation_timeout),
-                                channel_id=group.channel_id
-                            )
-
-                        else:
-                            # Close Session + Kill Bot 
-                            group.is_active = False    
-                            database.session_resource.set_session_inactive(session)
-                            database.group_resource.update_group(group)
-                            await bot.send_message(
-                                message=GameMaster.killing_bot(group.language),
-                                channel_id=group.channel_id
-                            )
+                        await kill_session(bot, session, group, database)
 
                     # Contributions Detected
                     else:
@@ -235,10 +217,21 @@ async def check_chats():
                         # User Streak Update
                         streaks = {}
                         for contribution in contributions:
-                            user: User = database.group_resource.get_user_by_id(contribution.user_id, group.id)
+                            user: User = database.group_resource.get_user_by_id(contribution.user_discord_id, group.id)
                             user, streak = compute_streak(user, session)
                             streaks[user.name] = streak
                             database.group_resource.update_user(user)
+
+                        # Spotify Recommandation
+                        spotilinks = [extract_link(c.content) for c in contributions if c.platform == 'SPOTIFY' is not None]
+                        if len(spotilinks) > 0:
+                            recommander = Recommander(os.getenv('SPOTIFY_CLIENT_ID'), os.getenv('SPOTIFY_CLIENT_SECRET'))
+                            reco = recommander.get_recommandation(spotilinks, limit=1)
+
+                            await bot.send_message(
+                                message=GameMaster.recommandation(reco[0]),
+                                channel_id=group.channel_id
+                            )
 
                         # Close Participation
                         await bot.send_message(
@@ -256,22 +249,7 @@ async def check_chats():
                     # Get Contributions   
                     users: list[User] = database.group_resource.get_group_users(group.id)
                     contributions: list[Contribution] = database.session_resource.get_contributions(session.id)
-                    votes, reacts, winners, points, is_banger = await count_votes(bot, session, contributions)
-
-                    # Update Contributions 
-                    for contribution in contributions:
-
-                        # Contribution Update
-                        contribution.reacts = reacts[contribution.user_id]
-                        contribution.points = points[contribution.user_id]
-                        if contribution.user_id in winners: 
-                            contribution.winner = True
-                            contribution.banger = is_banger
-                        database.session_resource.update_contribution(contribution)
-
-                        # Points Update
-                        user: User = database.group_resource.get_user_by_id(contribution.user_id, group.id)
-                        user.points = user.points + contribution.points
+                    votes, winners = await vote_analysis(bot, session, group, contributions)
 
                     # Close Votes
                     await bot.send_message(
@@ -281,29 +259,7 @@ async def check_chats():
 
                     # Close Session 
                     database.session_resource.set_session_inactive(session)
-
-                    # Badge Update
-                    for user in users:
-                        existing_userbadges: list[UserBadge] = database.group_resource.get_user_badges(user.id)
-                        assigned_badges: list[Badge] = Badger.assign_badges(user, database)
-                        existing_userbadges = [ub.id for ub in existing_userbadges]
-                        new_userbadges = [
-                            UserBadge(
-                                badge_name=b.name,
-                                badge_metal=b.metal,
-                                description=b.description,
-                                emoji=b.emoji,
-                                user_id=user.id, 
-                                group_id=group.id,
-                                discord_id=user.discord_id
-                            )
-                            for b in assigned_badges if f'{user.id}-{b.name}-{b.metal}' not in existing_userbadges
-                        ]
-
-                        # Notice badges
-                        database.group_resource.add_user_badges(new_userbadges)
-                        for m in GameMaster.badges_assigned(user, assigned_badges):
-                            await bot.send_message(message=m, channel_id=group.channel_id)
+                    await badge_update(users, group, database)
 
                 except Exception as e:
                     error_message += f"[BOT] / End Event failed **{e}**\n"

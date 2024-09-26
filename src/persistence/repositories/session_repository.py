@@ -48,6 +48,15 @@ class SessionDbResource:
             _session.commit()
             _session.refresh(merged_session)
 
+    
+    def update_session(self, session: Session):
+
+        with self.session() as _session:
+
+            updated_session = _session.merge(session)
+            _session.commit()
+            _session.refresh(updated_session)
+
 
     def create_contributions(self, contributions: list[Contribution]):
 
@@ -89,7 +98,7 @@ class SessionDbResource:
 
         with self.session() as session:
 
-            return session.query(Contribution).filter(Contribution.user_id == discord_id, Contribution.channel_id == channel_id).all()
+            return session.query(Contribution).filter(Contribution.user_discord_id == discord_id, Contribution.channel_id == channel_id).all()
 
 
     def get_sessions(self, session_ids: list[int]) -> list[Session]:

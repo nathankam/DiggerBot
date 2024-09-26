@@ -45,15 +45,6 @@ class GroupDbResource:
         with self.session() as session:
 
             return session.query(Group).filter(Group.channel_id == channel_id).first()
-        
-    
-    def add_user_to_group(self, group: Group, user_id: int):
-
-        with self.session() as session:
-
-            group.users.append(user_id)
-            session.commit()
-            session.refresh(group)
 
 
     def get_user_by_id(self, discord_id: int, group_id: int):

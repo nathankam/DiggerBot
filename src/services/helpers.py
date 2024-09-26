@@ -1,18 +1,22 @@
 import random
+import re
 from typing import Tuple
 
 import discord
 from src.data.challenges import CHALLENGES
 from src.data.genres import GENRES, SUBGENRES
 
+from src.models.badge import Badge
 from src.models.music import GenreName, Theme
 from src.models.settings import Settings
 
 from src.persistence.database import DatabaseAccess
+from src.persistence.models.badge import UserBadge
 from src.persistence.models.contribution import Contribution
 from src.persistence.models.group import Group
 from src.persistence.models.session import Session
 from src.persistence.models.user import User
+from src.services.badger import Badger
 from src.services.bot import DiscordBot
 from src.services.gamemaster import GameMaster
 
@@ -73,7 +77,7 @@ def detect_contributions(
     contributions: list[Contribution] = [
         Contribution(
             message_id=m.id,
-            user_id=m.author.id,
+            discord_id=m.author.id,
             channel_id=session.channel_id,
             session_id=session.id,
             content=m.content,
@@ -87,7 +91,7 @@ def detect_contributions(
     # Remove duplicate participations for each user
     contributions_dict: dict[int, Contribution] = {}
     for contribution in contributions:
-        user = contribution.user_id
+        user = contribution.user_discord_id
         if user not in contributions_dict:
             contributions_dict[user] = contribution
         else:
@@ -103,54 +107,75 @@ def detect_contributions(
 
 
 
-async def count_votes(
+async def vote_analysis(
         bot: DiscordBot, 
         session: Session, 
+        group: Group, 
+        database: DatabaseAccess,
         contributions: list[Contribution]
-        ) -> Tuple[dict[int, int], dict[int, dict[int, str]], list[int], dict[int, int], bool]:
+    ) -> Tuple[dict[int, int], list[int]]:
 
     # Session Channel ID
     channel_id = session.channel_id
     channel = bot.get_channel(channel_id)
 
     # Initialize Votes // KEYS = User Discord Id
-    reacts = dict.fromkeys([c.user_id for c in contributions], 0)
-    votes = dict.fromkeys([c.user_id for c in contributions], 0)
-    points = dict.fromkeys([c.user_id for c in contributions], 0)
+    reacts = dict.fromkeys([c.user_discord_id for c in contributions], 0)
+    vote_count = dict.fromkeys([c.user_discord_id for c in contributions], 0)
+    points = dict.fromkeys([c.user_discord_id for c in contributions], 0)
+    votes = dict.fromkeys([c.user_discord_id for c in contributions], [])
 
     # Count Votes
     for contribution in contributions: 
 
+        # Fetch Contribution Message Reactions
         message = await channel.fetch_message(contribution.message_id)
         reactions = message.reactions
 
-        # Get User Reacts for contribution: KEY: User Id (int) / 
-        user_reacts, user_emojid = {}, {}
+        # For each reaction, get the users who reacted: [KEY: User Id (int) / VALUE: Emoji (str)]
+        contribution_reacts, contribution_emojid = {}, {}
         for reaction in reactions:
-            reaction_users: list[discord.User] = [user async for user in reaction.users()]
-            for user in reaction_users:
-                emoji_code = reaction.emoji if isinstance(reaction.emoji, str) else reaction.emoji.id
-                user_reacts[user.id] = reaction.emoji
-                user_emojid[user.id] = emoji_code
 
-        print('[LOG] -- User Reacts:', user_reacts)
-        print('[LOG] -- User Emoji Ids:', user_emojid)
+            # Fetch Users who reacted (Voters)
+            reaction_users: list[discord.User] = [user async for user in reaction.users()]
+            for voter in reaction_users:
+                emoji_code = reaction.emoji if isinstance(reaction.emoji, str) else reaction.emoji.id
+                contribution_reacts[voter.id] = reaction.emoji
+                contribution_emojid[voter.id] = emoji_code
+                votes[voter.id].append((contribution.user_discord_id, emoji_code))
 
         # Count the votes
-        vote_count = len([r for r in user_emojid.values() if r in ['VOTE', 'COUPDECOEUR']])
-        print(f'[LOG] -- {contribution.user_id} - {vote_count} votes')
-
-        votes[contribution.user_id] = vote_count
-        reacts[contribution.user_id] = user_reacts
-
-
-    # Sort Votes 
-    votes = dict(sorted(votes.items(), key=lambda item: item[1], reverse=True))
+        _vote_count = len([r for u, r in contribution_emojid.items() if u != contribution.user_discord_id])
+        vote_count[contribution.user_discord_id] = _vote_count
+        reacts[contribution.user_discord_id] = contribution_reacts
+        print(f'[LOG] -- {contribution.user_discord_id} -> {_vote_count} votes')
 
     # Compute Points
-    points, winners, banger = compute_points(points, votes)
+    vote_count = dict(sorted(vote_count.items(), key=lambda item: item[1], reverse=True))
+    voters = [v for v, votes in votes.items() if len(votes) > 0]
+    points, winners, banger = compute_points(points, vote_count)
 
-    return votes, reacts, winners, points, banger
+    # Update Contributions and User Points 
+    for contribution in contributions:
+        contribution.reacts = reacts[contribution.user_discord_id]
+        contribution.points = points[contribution.user_discord_id]
+        if contribution.user_discord_id in winners: 
+            contribution.winner = True
+            contribution.banger = banger
+        database.session_resource.update_contribution(contribution)
+
+        # Points Update
+        user: User = database.group_resource.get_user_by_id(contribution.user_discord_id, group.id)
+        user.points = user.points + contribution.points
+        database.group_resource.update_user(user)
+
+    # Update Session
+    session.voters = voters
+    session.winners = winners
+    session.participants = [c.user_discord_id for c in contributions]
+    database.session_resource.update_session(session)
+
+    return vote_count, winners
 
 
 def compute_points(points: dict[int, int], votes: dict[int, int]) -> tuple[dict[int, int], list[int], bool]:
@@ -158,9 +183,9 @@ def compute_points(points: dict[int, int], votes: dict[int, int]) -> tuple[dict[
     # Winners definition
     winners = []
     max_votes = max(votes.values())
-    for user_id, vote_count in votes.items(): 
+    for user_discord_id, vote_count in votes.items(): 
         if vote_count == max_votes: 
-            winners.append(user_id)
+            winners.append(user_discord_id)
         else: 
             break 
 
@@ -171,9 +196,9 @@ def compute_points(points: dict[int, int], votes: dict[int, int]) -> tuple[dict[
 
     # Points System / 
     if len(winners) == 1:
-        points[winners[0]] = 3 if is_banger else 2
+        points[winners[0]] = 300 if is_banger else 200
     elif len(winners) > 1: 
-        for w in winners: points[w] = 1
+        for w in winners: points[w] = 100
 
     return points, winners, is_banger
 
@@ -202,6 +227,60 @@ def compute_streak(user: User, session: Session) -> tuple[User, int]:
     return user, user.streak
 
 
+async def kill_session(session: Session, group: Group, bot: DiscordBot, database: DatabaseAccess):
+
+    # Participation Timeout
+    last_session_number = database.session_resource.get_last_active_session_number(group.channel_id)
+    participation_timeout = 3 - (session.session_number - last_session_number)
+    
+    if participation_timeout > 0:
+
+        # Close Session
+        database.session_resource.set_session_inactive(session)
+        database.group_resource.streak_reset(group)
+        await bot.send_message(
+            message=GameMaster.no_contributions(session, group, participation_timeout),
+            channel_id=group.channel_id
+        )
+
+    else:
+        # Close Session + Kill Bot 
+        group.is_active = False    
+        database.session_resource.set_session_inactive(session)
+        database.group_resource.update_group(group)
+        await bot.send_message(
+            message=GameMaster.killing_bot(group.language),
+            channel_id=group.channel_id
+        )
+
+
+async def badge_update(users: list[User], group: Group, bot: DiscordBot, database: DatabaseAccess):
+
+    # Badge Update
+    for user in users:
+        existing_userbadges: list[UserBadge] = database.group_resource.get_user_badges(user.id)
+        assigned_badges: list[Badge] = Badger.assign_badges(user, database)
+        existing_userbadges = [ub.id for ub in existing_userbadges]
+        new_userbadges = [
+            UserBadge(
+                badge_name=b.name,
+                badge_metal=b.metal,
+                description=b.description,
+                emoji=b.emoji,
+                user_id=user.id, 
+                group_id=group.id,
+                discord_id=user.discord_id
+            )
+            for b in assigned_badges if f'{user.id}-{b.name}-{b.metal}' not in existing_userbadges
+        ]
+
+        # Notice badges
+        database.group_resource.add_user_badges(new_userbadges)
+        for m in GameMaster.badges_assigned(user, assigned_badges):
+            await bot.send_message(message=m, channel_id=group.channel_id)
+
+
+
 async def welcome_user(user: User, group: Group, bot: DiscordBot, database: DatabaseAccess):
 
     # Get Discord Member
@@ -219,4 +298,10 @@ async def welcome_user(user: User, group: Group, bot: DiscordBot, database: Data
     
 
 
+def extract_link(message_content: str) -> str:
 
+    url_pattern = re.compile(r'https?://\S+')
+    if url_pattern.findall(message_content):
+        return url_pattern.findall(message_content)[0]
+    else: 
+        return None

@@ -26,6 +26,18 @@ CHALLENGES = [
         description="A song with ambient sounds."
     ),
     Challenge(
+        name="Spacey Vibes", 
+        description="A song that reminds you of space. 🪐"
+    ),
+    Challenge(
+        name="Feel Good",
+        description="A song that makes you feel good."
+    ),
+    Challenge(
+        name="Forest Vibes",
+        description="A song that reminds you of a forest."
+    ),
+    Challenge(
         name="Energetic",
         description="A song that makes you feel energetic."
     ),

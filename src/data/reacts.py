@@ -2,21 +2,19 @@ from src.models.message import React
 
 REACTS = [
     React(
-        name='COUPDECOEUR',
-        emoji="🌟",
-        meaning="Coup de coeur",
-        points=300,
-    ),
-    React(
-        name="VOTE",
-        emoji="🪩",
-        meaning="Vote",
-        points=200,
-    ),
-    React(
-        name="FIND",
+        name='TUNE',
         emoji="💣",
-        meaning="Good Find",
-        points=100,
+        meaning={
+            'EN': "Special react for really special tracks!",
+            'FR': "Réact spécial pour tracks vraiment spéciales!"
+        }
+    ),
+    React(
+        name="DIGGER",
+        emoji="🧐",
+        meaning={
+            'EN': "But where did you even find this?",
+            'FR': "Mais ou est ce que tu vas chercher ça?"
+        }
     )
 ]

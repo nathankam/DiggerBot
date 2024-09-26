@@ -64,7 +64,7 @@ class Settings:
 DEFAULT_SETTINGS = Settings(
     incognito=False,
     genre_explo_ratio=0.5,
-    genre_subgenre_ratio=0.8,
+    genre_subgenre_ratio=0.9,
     genre_weights={
         GenreName.ROCK : 2,
         GenreName.POP : 1,

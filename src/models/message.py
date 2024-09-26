@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional 
+from typing import Literal, Optional 
 
 @dataclass(frozen=True)
 class TextMessage:
@@ -21,8 +21,7 @@ class Command:
 class React:
     name: str
     emoji: str
-    meaning: str
-    points: Optional[int] = None
+    meaning: dict[Literal['FR', 'EN'], str]
 
 
 

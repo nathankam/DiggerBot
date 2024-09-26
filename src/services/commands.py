@@ -1,4 +1,4 @@
-from dataclasses import replace
+import dataclasses
 import re
 import traceback
 import json
@@ -309,7 +309,7 @@ class CommandCenter:
             try: 
                 group: Group = db_access.group_resource.get_group(self.group_id)
                 settings: Settings = Settings.from_dict(json.loads(group.settings))
-                new_settings = replace(settings, incognito=bool(int(content.split(' ')[1], 0)))
+                new_settings = dataclasses.replace(settings, incognito=bool(int(content.split(' ')[1], 0)))
                 group.settings = json.dumps(new_settings.to_dict())
                 db_access.group_resource.update_group(group)
                 message = self.warning(command, f'Incognito mode set to {new_settings.incognito}')
@@ -324,7 +324,7 @@ class CommandCenter:
             try: 
                 group: Group = db_access.group_resource.get_group(self.group_id)
                 settings: Settings = Settings.from_dict(json.loads(group.settings))
-                new_settings = replace(settings, genre_explo_ratio=float(content.split(' ')[1], 0.5))
+                new_settings = dataclasses.replace(settings, genre_explo_ratio=float(content.split(' ')[1], 0.5))
                 group.settings = json.dumps(new_settings.to_dict())
                 db_access.group_resource.update_group(group)
                 message = self.warning(command, f'Genre Exploration Ratio set to {new_settings.genre_explo_ratio}')
@@ -339,7 +339,7 @@ class CommandCenter:
             try: 
                 group: Group = db_access.group_resource.get_group(self.group_id)
                 settings: Settings = Settings.from_dict(json.loads(group.settings))
-                new_settings = replace(settings, genre_subgenre_ratio=float(content.split(' ')[1], 0.5))
+                new_settings = dataclasses.replace(settings, genre_subgenre_ratio=float(content.split(' ')[1], 0.5))
                 group.settings = json.dumps(new_settings.to_dict())
                 db_access.group_resource.update_group(group)
                 message = self.warning(command, f'Genre / Subgenre Ratio set to {new_settings.genre_subgenre_ratio}')
@@ -356,7 +356,7 @@ class CommandCenter:
                 group: Group = db_access.group_resource.get_group(self.group_id)
                 settings: Settings = Settings.from_dict(json.loads(group.settings))
                 genre, weight = GenreName(args[1]), int(args[2])
-                new_settings = replace(settings, genre_weights={**settings.genre_weights, genre: weight})
+                new_settings = dataclasses.replace(settings, genre_weights={**settings.genre_weights, genre: weight})
                 group.settings = json.dumps(settings.to_dict())
                 db_access.group_resource.update_group(group)
                 message = self.warning(command, f'Genre Proportion for {genre.name} set to {weight}')

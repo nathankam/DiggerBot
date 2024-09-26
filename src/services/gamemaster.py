@@ -115,7 +115,7 @@ class GameMaster:
         m_fr = f'**[SESSION {session.session_number} / VOTE]**' + \
             f'\n\nLes participations sont closes! {len(contributions)} {cont}' + \
             (users if not session.incognito else '') + \
-            f'\n\nToutes les reacts comptent comme un vote! Vous pouvez aussui utilisez des votes spécifiques: \n' + \
+            f'\n\nToutes les reacts comptent comme un vote! Vous pouvez aussui utilisez des reacts plus spécifiques: \n' + \
             f'\n'.join([f' {a.emoji} - *{a.meaning}*' for a in REACTS]) + \
             f'\n\nVous avez jusqu\'à {TRANSLATIONS[indicator]} {end_hour} pour voter!'
         
@@ -354,5 +354,14 @@ class GameMaster:
     def space_padding(string: str, length: int) -> str: 
 
         return '`' + string + ' ' * (length - len(string)) + '`'
+    
+
+    @staticmethod
+    def recommandation(reco_link: str, group: Group) -> str: 
+
+        m = f'🎶 {reco_link}'
+
+        return m
+        
 
         

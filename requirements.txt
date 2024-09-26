@@ -3,4 +3,5 @@ python-dotenv
 pytz
 psycopg2-binary
 sqlalchemy
+spotipy
 
