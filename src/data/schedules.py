@@ -49,5 +49,5 @@ SCHEDULES: list[Schedule] = [
         monday=[Event('Start', '09:00')],
         thursday=[Event('Vote', '09:00')],
         sunday=[Event('End', '09:00')],
-    ),
+    )
 ]

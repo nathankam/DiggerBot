@@ -35,7 +35,8 @@ class Event:
                      datetime.datetime.strptime(today, "%A").weekday())
         
         date_event = now_tz.date() + datetime.timedelta(days=delta_day)
-        event_time = date_event.replace(hour=event_hour.hour, minute=event_hour.minute, second=0, microsecond=0)
+        event_time = datetime.datetime.combine(date_event, datetime.time(event_hour.hour, event_hour.minute))
+        event_time = event_time.replace(tzinfo=now_tz.tzinfo)
 
         return event_time.astimezone(pytz.utc)
     

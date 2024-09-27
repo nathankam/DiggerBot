@@ -40,7 +40,7 @@ class CommandCenter:
 
             message = self.title(command, 'Available commands:')
             commands = '\n'.join([
-                f'`{self.padding_space(c.code, 20)}`' + f' -- {c.description}' + (f' -- ***{c.instructions}***' if c.instructions else '') 
+                f'`{self.padding_space(c.instructions if c.instructions else c.code, 20)}`' + f' -- {c.description}' 
                 for c in COMMANDS])
             message = message + commands 
 

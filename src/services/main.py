@@ -223,7 +223,7 @@ async def check_chats():
                             database.group_resource.update_user(user)
 
                         # Spotify Recommandation
-                        spotilinks = [extract_link(c.content) for c in contributions if c.platform == 'SPOTIFY' is not None]
+                        spotilinks = [extract_link(c.content) for c in contributions if c.platform == 'SPOTIFY']
                         if len(spotilinks) > 0:
                             recommander = Recommander(os.getenv('SPOTIFY_CLIENT_ID'), os.getenv('SPOTIFY_CLIENT_SECRET'))
                             reco = recommander.get_recommandation(spotilinks, limit=1)
