@@ -54,7 +54,7 @@ class GameMaster:
         m_en = f'**[SESSION {session.session_number} / START]**' + \
             f'\n\n{random.choice(GREETINGS[group.language])}' + \
             f'\n\nToday\'s theme is: **{theme_name}** \n*{theme.content.description}*' + \
-            f'\n\nYou have until **{TRANSLATIONS[indicator]} {vote_hour}** to propose a track!'
+            f'\n\nYou have until **{indicator} {vote_hour}** to propose a track!'
         
 
         # Session Start
@@ -89,7 +89,7 @@ class GameMaster:
             f'\n\nThe session is in incognito mode 🥸.' + \
             f'\nYou can share your link here, **by replying to this message** ↩, and I\'ll take care of the rest!' + \
             f'\n\nTheme: {theme_name} \n*{theme.content.description}*' + \
-            f'\n\nYou have until **{TRANSLATIONS[indicator]} {vote_hour}** to propose a track!'
+            f'\n\nYou have until **{indicator} {vote_hour}** to propose a track!'
         
         return {'FR': m_fr, 'EN':  m_en}[group.language]
     
@@ -124,7 +124,7 @@ class GameMaster:
             (users if not session.incognito else '') + \
             f'\n\nAll emoji react count as a vote! You can also use special reacts: \n' + \
             f'\n'.join([f' {a.emoji} - *{a.meaning}*' for a in REACTS]) + \
-            f'\n\nYou have until {TRANSLATIONS[indicator]} {end_hour} to vote!'
+            f'\n\nYou have until {indicator} {end_hour} to vote!'
         
         return {'FR': m_fr, 'EN':  m_en}[group.language]
     

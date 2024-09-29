@@ -77,7 +77,7 @@ def detect_contributions(
     contributions: list[Contribution] = [
         Contribution(
             message_id=m.id,
-            discord_id=m.author.id,
+            user_discord_id=m.author.id,
             channel_id=session.channel_id,
             session_id=session.id,
             content=m.content,

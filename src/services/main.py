@@ -249,7 +249,7 @@ async def check_chats():
                     # Get Contributions   
                     users: list[User] = database.group_resource.get_group_users(group.id)
                     contributions: list[Contribution] = database.session_resource.get_contributions(session.id)
-                    votes, winners = await vote_analysis(bot, session, group, contributions)
+                    votes, winners = await vote_analysis(bot, session, group, database, contributions)
 
                     # Close Votes
                     await bot.send_message(
