@@ -8,7 +8,6 @@ import os, sys, asyncio
 import discord
 import pytz
 
-from src.services.recommander import Recommander
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -26,6 +25,7 @@ from src.persistence.models.session import Session
 from src.persistence.models.group import Group
 from src.persistence.models.user import User
 
+from src.services.recommander import Recommander
 from src.services.commands import CommandCenter
 from src.services.bot import DiscordBot
 from src.services.gamemaster import GameMaster
